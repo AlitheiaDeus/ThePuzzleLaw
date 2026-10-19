@@ -76,3 +76,9 @@ ehthumbs_vista.db
 
 # Logs
 *.log
+
+# Personal & Local Configuration / Workflows
+environment_pylearn.yml
+environment*.yml
+Waypoint_Implementation_Plan.md
+AGENTS.md
