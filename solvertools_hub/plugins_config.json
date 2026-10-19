@@ -1,0 +1,78 @@
+{
+  "_comment": "The Puzzle Law - Plugin Activation Configuration. Set 'enabled' to true or false to expose or hide plugins.",
+  "plugins": {
+    "Urjo": {
+      "enabled": true,
+      "status": "active",
+      "category": "Grid / Binary",
+      "notes": "Urjo binary puzzle with neighborhood clues and adjacent line disparity"
+    },
+    "Unruly (Binary Puzzle)": {
+      "enabled": true,
+      "status": "active",
+      "category": "Grid / Binary",
+      "notes": "Takuzu / 0h h1 binary grid solver"
+    },
+    "Sudoku (Constraint Grid)": {
+      "enabled": true,
+      "status": "active",
+      "category": "Constraint Grids",
+      "notes": "Standard 9x9 Sudoku constraint satisfaction solver"
+    },
+    "Flip (Lights Out)": {
+      "enabled": true,
+      "status": "active",
+      "category": "Matrix Toggle",
+      "notes": "Lights Out GF(2) linear solver"
+    },
+    "Liquid Sorter Pro": {
+      "enabled": true,
+      "status": "active",
+      "category": "Vector Containers",
+      "notes": "Liquid Sorter Pro with variable capacities and A* queue"
+    },
+    "Sliding Tile (N-Puzzle)": {
+      "enabled": true,
+      "status": "active",
+      "category": "2D Grid",
+      "notes": "15-puzzle / NxN sliding tile solver with Manhattan A*"
+    },
+    "Chess Attack": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Tactical / Board",
+      "notes": "Zoned board tactical piece placement engine (Queen, Extended King, Superking)"
+    },
+    "The Cipher Room": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Crypt & Signal",
+      "notes": "Smooshed unspaced Morse beam-search & classical cryptanalysis suite"
+    },
+    "Flow Free": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Paths / Topological",
+      "notes": "Topological 100% saturation path router & Numberlink solver"
+    },
+    "Maze Navigator": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Navigators / Geometry",
+      "notes": "Orthogonal, Hexagonal & Euclidean 2D pathfinding navigators"
+    },
+    "Loop Family": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Loops & Boundaries",
+      "notes": "Slitherlink, Palisade, and Masyu single-loop solvers"
+    },
+    "Packing Grids": {
+      "enabled": false,
+      "status": "wip",
+      "category": "Exact Cover & Packing",
+      "notes": "Nonograms (Picross) and Knuth Algorithm X DLX polyomino packings"
+    }
+  },
+  "default_enabled": true
+}

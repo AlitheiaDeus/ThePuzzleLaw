@@ -411,6 +411,66 @@ class TestRegistry(unittest.TestCase):
         plugin_names = [p.name for p in registry.list_plugins()]
         self.assertIn("Urjo", plugin_names)
 
+    def test_registry_config_filtering(self):
+        registry = PluginRegistry()
+        registry.auto_discover()
+        active_names = [p.name for p in registry.list_plugins()]
+        disabled_names = [p.name for p in registry.list_disabled_plugins()]
+
+        # Active plugins
+        self.assertIn("Urjo", active_names)
+        self.assertIn("Liquid Sorter Pro", active_names)
+        self.assertIn("Sliding Tile (N-Puzzle)", active_names)
+        self.assertIn("Sudoku (Constraint Grid)", active_names)
+        self.assertIn("Flip (Lights Out)", active_names)
+        self.assertIn("Unruly (Binary Puzzle)", active_names)
+
+        # Curtained draft plugins
+        self.assertIn("Chess Attack", disabled_names)
+        self.assertIn("The Cipher Room", disabled_names)
+        self.assertIn("Flow Free", disabled_names)
+        self.assertIn("Maze Navigator", disabled_names)
+        self.assertIn("Loop Family", disabled_names)
+        self.assertIn("Packing Grids", disabled_names)
+
+
+class TestPlaceholders(unittest.TestCase):
+    def test_all_placeholders_adhere_to_contracts(self):
+        from solvertools_hub.plugins.chess_attack import ChessAttackPlugin
+        from solvertools_hub.plugins.cipher_room import CipherRoomPlugin
+        from solvertools_hub.plugins.flow import FlowPlugin
+        from solvertools_hub.plugins.loop_games import LoopFamilyPlugin
+        from solvertools_hub.plugins.maze_navigator import MazeNavigatorPlugin
+        from solvertools_hub.plugins.packing_grids import PackingGridsPlugin
+
+        placeholders = [
+            ChessAttackPlugin(),
+            CipherRoomPlugin(),
+            FlowPlugin(),
+            MazeNavigatorPlugin(),
+            LoopFamilyPlugin(),
+            PackingGridsPlugin(),
+        ]
+        for plugin in placeholders:
+            self.assertTrue(plugin.is_wip, f"{plugin.name} should be marked is_wip=True")
+            state = plugin.create_default_state()
+            valid, reason = state.validate()
+            self.assertTrue(valid, f"{plugin.name} validation failed: {reason}")
+
+            # Serialization roundtrip
+            ser = state.serialize()
+            deser = type(state).deserialize(ser)
+            self.assertEqual(ser, deser.serialize(), f"{plugin.name} serialization mismatch")
+
+            # Solver yields
+            solver = plugin.create_solver()
+            steps = list(solver.solve(state))
+            self.assertGreaterEqual(len(steps), 1, f"{plugin.name} solver yielded no steps")
+
+            # Canvas can be instantiated
+            canvas = plugin.create_canvas(state)
+            self.assertIsNotNone(canvas)
+
 
 if __name__ == "__main__":
     unittest.main()

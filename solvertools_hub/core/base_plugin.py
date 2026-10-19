@@ -99,6 +99,7 @@ class BasePuzzlePlugin(ABC):
     name: str = "Unnamed Puzzle"
     category: str = "General"
     description: str = ""
+    is_wip: bool = False
 
     @abstractmethod
     def create_default_state(self) -> BasePuzzleState:

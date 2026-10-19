@@ -66,11 +66,12 @@ Rather than isolated command-line scripts, it provides a unified hub where each 
 ```
 The_Puzzle_Law/
 ├── solvertools_hub/
-│   ├── main.py                  # Entry point, QSS injection, global exception handling
+│   ├── main.py                  # Entry point, QSS injection, dynamic autodiscovery
+│   ├── plugins_config.json      # Plugin activation & curtain filter configuration
 │   ├── theme.py                 # Chalkboard & Neon color tokens + global styling
 │   ├── core/
 │   │   ├── base_plugin.py       # Contracts: BasePuzzleState, BaseSolver, BasePuzzleCanvas
-│   │   ├── registry.py          # Dynamic plugin discovery and auto-registration
+│   │   ├── registry.py          # Dynamic plugin discovery and config-driven filtering
 │   │   ├── worker.py            # QThread asynchronous solver runner
 │   │   └── io_manager.py        # JSON & clipboard serialization utilities
 │   ├── ui/
@@ -78,12 +79,18 @@ The_Puzzle_Law/
 │   │   ├── transport_bar.py     # Unified playback controls & scrub slider
 │   │   └── log_drawer.py        # Real-time search trace and heuristic logger
 │   └── plugins/                 # Modular puzzle implementations
-│       ├── sliding_tile/
-│       ├── sand_tubes/
-│       ├── sudoku/
-│       ├── flip/
-│       ├── unruly/
-│       └── urjo/
+│       ├── sliding_tile/        # [Active] 15-puzzle / NxN sliding tile
+│       ├── sand_tubes/          # [Active] Liquid Sorter Pro
+│       ├── sudoku/              # [Active] 9x9 Constraint Grid
+│       ├── flip/                # [Active] Lights Out GF(2) solver
+│       ├── unruly/              # [Active] Binary puzzle parity & run-length
+│       ├── urjo/                # [Active] Binary grid with Moore neighborhood clues
+│       ├── chess_attack/        # [Curtain / Draft] Tactical zoned chess pieces
+│       ├── cipher_room/         # [Curtain / Draft] Smooshed Morse & classical cryptanalysis
+│       ├── flow/                # [Curtain / Draft] Topological path saturation router
+│       ├── maze_navigator/      # [Curtain / Draft] 2D grid, hex, & Euclidean navigators
+│       ├── loop_games/          # [Curtain / Draft] Slitherlink, Palisade, Pearl loops
+│       └── packing_grids/       # [Curtain / Draft] Nonograms & Knuth DLX polyominoes
 ├── tests/                       # Automated test suites (core, plugins, UI launch)
 ├── Snippets To Integrate/       # Staging area for upcoming puzzle algorithms
 ├── Prebuild_Blueprint.md        # Complete architectural blueprint and technical spec
