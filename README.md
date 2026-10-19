@@ -55,6 +55,7 @@ Rather than isolated command-line scripts, it provides a unified hub where each 
 | **Sudoku** | Constraint Satisfaction (CSP) + Backtracking | Solves standard $9\times9$ grid constraints with real-time cell conflicts and naked single propagation. |
 | **Flip (Lights Out)** | Linear Algebra over $\mathbb{F}_2$ (GF(2)) | Uses Gaussian elimination to calculate exact toggle patterns for matrix light grids. |
 | **Unruly** | Binary Constraint Satisfaction | Solves binary grid puzzles with strict row/column parity and no-three-in-a-row rules. |
+| **Urjo** | Constraint Satisfaction + Neighborhood Propagation | Solves dual-color grid puzzles with Moore neighborhood numerical clues, line parity, and adjacent line disparity. |
 
 *Additional solvers currently in development / integration: Flow Free, Chess Attack, ASCII/Morse, and Superking.*
 
@@ -81,7 +82,8 @@ The_Puzzle_Law/
 │       ├── sand_tubes/
 │       ├── sudoku/
 │       ├── flip/
-│       └── unruly/
+│       ├── unruly/
+│       └── urjo/
 ├── tests/                       # Automated test suites (core, plugins, UI launch)
 ├── Snippets To Integrate/       # Staging area for upcoming puzzle algorithms
 ├── Prebuild_Blueprint.md        # Complete architectural blueprint and technical spec

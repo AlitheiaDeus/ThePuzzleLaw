@@ -24,6 +24,7 @@ from solvertools_hub.plugins.sand_tubes import SandTubePlugin
 from solvertools_hub.plugins.sliding_tile import SlidingTilePlugin
 from solvertools_hub.plugins.sudoku import SudokuPlugin
 from solvertools_hub.plugins.unruly import UnrulyPlugin
+from solvertools_hub.plugins.urjo import UrjoPlugin
 from solvertools_hub.theme import ChalkTheme
 from solvertools_hub.ui.hub_window import PuzzleHubWindow
 
@@ -53,6 +54,7 @@ def run():
     registry.register(SudokuPlugin())
     registry.register(FlipPlugin())
     registry.register(UnrulyPlugin())
+    registry.register(UrjoPlugin())
 
     # Pre-flight sanity assertion on registered plugins
     logger.info("Executing pre-flight plugin sanity checks...")

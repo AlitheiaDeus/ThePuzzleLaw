@@ -22,6 +22,7 @@ from solvertools_hub.plugins.sand_tubes import SandTubePlugin
 from solvertools_hub.plugins.sudoku import SudokuPlugin
 from solvertools_hub.plugins.flip import FlipPlugin
 from solvertools_hub.plugins.unruly import UnrulyPlugin
+from solvertools_hub.plugins.urjo import UrjoPlugin
 from solvertools_hub.ui.hub_window import PuzzleHubWindow
 
 
@@ -40,10 +41,11 @@ class TestUILaunch(unittest.TestCase):
         registry.register(SudokuPlugin())
         registry.register(FlipPlugin())
         registry.register(UnrulyPlugin())
+        registry.register(UrjoPlugin())
 
         window = PuzzleHubWindow(registry.list_plugins())
         self.assertIsNotNone(window)
-        self.assertEqual(window.nav_list.count(), 5)
+        self.assertEqual(window.nav_list.count(), 6)
 
         # Switch to Sand Tubes / Liquid Sorter
         window.nav_list.setCurrentRow(1)
@@ -63,6 +65,11 @@ class TestUILaunch(unittest.TestCase):
         # Switch to Unruly
         window.nav_list.setCurrentRow(4)
         self.assertEqual(window.active_plugin.name, "Unruly (Binary Puzzle)")
+        self.assertIsNotNone(window.active_canvas)
+
+        # Switch to Urjo
+        window.nav_list.setCurrentRow(5)
+        self.assertEqual(window.active_plugin.name, "Urjo")
         self.assertIsNotNone(window.active_canvas)
 
         # Switch back to Sliding Tile

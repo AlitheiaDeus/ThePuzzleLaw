@@ -23,6 +23,7 @@ from solvertools_hub.plugins.sand_tubes import SandTubePlugin, SandTubeState, Sa
 from solvertools_hub.plugins.sudoku import SudokuPlugin, SudokuState, SudokuSolver
 from solvertools_hub.plugins.flip import FlipPlugin, FlipState, FlipSolver
 from solvertools_hub.plugins.unruly import UnrulyPlugin, UnrulyState, UnrulySolver
+from solvertools_hub.plugins.urjo import UrjoPlugin, UrjoState, UrjoSolver
 
 
 class TestTheme(unittest.TestCase):
@@ -321,6 +322,76 @@ class TestUnruly(unittest.TestCase):
         self.assertTrue(final_state.is_solved())
 
 
+class TestUrjo(unittest.TestCase):
+    def test_state_validation_valid(self):
+        st = UrjoState(4)
+        ok, reason = st.validate()
+        self.assertTrue(ok, reason)
+
+    def test_state_validation_odd_size(self):
+        st = UrjoState(5)
+        ok, reason = st.validate()
+        self.assertFalse(ok)
+        self.assertIn("even integer", reason)
+
+    def test_state_validation_line_overflow(self):
+        # 4x4 allows max 2 Reds per row; place 3 Reds
+        board = [[1, 1, 1, 0], [0]*4, [0]*4, [0]*4]
+        st = UrjoState(4, board=board)
+        ok, reason = st.validate()
+        self.assertFalse(ok)
+        self.assertIn("exceeds maximum color capacity", reason)
+
+    def test_adjacent_line_clash_detection(self):
+        # Two identical adjacent rows fully filled
+        board = [
+            [1, 2, 1, 2],
+            [1, 2, 1, 2],
+            [2, 1, 2, 1],
+            [2, 1, 2, 1],
+        ]
+        st = UrjoState(4, board=board)
+        ok, reason = st.validate()
+        self.assertFalse(ok)
+        self.assertIn("identical", reason)
+
+    def test_serialization_roundtrip(self):
+        st = UrjoState(6)
+        raw = st.serialize()
+        restored = UrjoState.deserialize(raw)
+        self.assertEqual(restored.grid_size, st.grid_size)
+        self.assertEqual(restored.board, st.board)
+        self.assertEqual(restored.clues, st.clues)
+
+    def test_solver_sample_4x4(self):
+        st = UrjoState(4)
+        solver = UrjoSolver()
+        steps = list(solver.solve(st))
+        self.assertGreaterEqual(len(steps), 2)
+        final_state = steps[-1].state
+        self.assertTrue(final_state.is_solved())
+
+    def test_solver_sample_6x6(self):
+        st = UrjoState(6)
+        solver = UrjoSolver()
+        steps = list(solver.solve(st))
+        self.assertGreaterEqual(len(steps), 2)
+        final_state = steps[-1].state
+        self.assertTrue(final_state.is_solved())
+
+    def test_color_cycle_order(self):
+        from solvertools_hub.plugins.urjo.canvas import UrjoCanvas
+        # Forward: Blank -> Blue -> Red -> Blank
+        self.assertEqual(UrjoCanvas.CYCLE_FORWARD[UrjoState.EMPTY], UrjoState.COLOR_BLUE)
+        self.assertEqual(UrjoCanvas.CYCLE_FORWARD[UrjoState.COLOR_BLUE], UrjoState.COLOR_RED)
+        self.assertEqual(UrjoCanvas.CYCLE_FORWARD[UrjoState.COLOR_RED], UrjoState.EMPTY)
+
+        # Reverse: Blank -> Red -> Blue -> Blank
+        self.assertEqual(UrjoCanvas.CYCLE_REVERSE[UrjoState.EMPTY], UrjoState.COLOR_RED)
+        self.assertEqual(UrjoCanvas.CYCLE_REVERSE[UrjoState.COLOR_RED], UrjoState.COLOR_BLUE)
+        self.assertEqual(UrjoCanvas.CYCLE_REVERSE[UrjoState.COLOR_BLUE], UrjoState.EMPTY)
+
+
 class TestRegistry(unittest.TestCase):
     def test_registry_registration(self):
         registry = PluginRegistry()
@@ -333,6 +404,12 @@ class TestRegistry(unittest.TestCase):
         self.assertEqual(len(plugins), 2)
         self.assertIn(tile_plugin, plugins)
         self.assertIn(tube_plugin, plugins)
+
+    def test_registry_auto_discovery_includes_urjo(self):
+        registry = PluginRegistry()
+        registry.auto_discover()
+        plugin_names = [p.name for p in registry.list_plugins()]
+        self.assertIn("Urjo", plugin_names)
 
 
 if __name__ == "__main__":
