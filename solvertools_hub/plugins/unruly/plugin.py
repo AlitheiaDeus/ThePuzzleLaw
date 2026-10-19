@@ -47,6 +47,7 @@ class UnrulyPlugin(BasePuzzlePlugin):
             if canvas.mode == InteractionMode.EDIT:
                 sz = [6, 8, 10][idx]
                 canvas.state = UnrulyState(sz, [[0] * sz for _ in range(sz)])
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 
@@ -77,6 +78,7 @@ class UnrulyPlugin(BasePuzzlePlugin):
         def _load_sample():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state = UnrulyState(6)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_sample.clicked.connect(_load_sample)
@@ -87,6 +89,7 @@ class UnrulyPlugin(BasePuzzlePlugin):
             if canvas.mode == InteractionMode.EDIT:
                 sz = canvas.state.grid_size
                 canvas.state = UnrulyState(sz, [[0] * sz for _ in range(sz)])
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_clear.clicked.connect(_clear)

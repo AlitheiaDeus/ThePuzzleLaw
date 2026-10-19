@@ -91,7 +91,18 @@ class BasePuzzleCanvas(QWidget):
     def set_mode(self, mode: InteractionMode) -> None:
         """Sets the canvas interaction mode (EDIT vs. PLAYBACK) and repaints."""
         self.mode = mode
+        if mode == InteractionMode.EDIT:
+            self.current_step = None
         self.update()
+
+    def get_render_state(self) -> BasePuzzleState:
+        """
+        Returns the active state to render:
+        Always self.state in EDIT mode, or the playback step's state in PLAYBACK mode.
+        """
+        if self.mode == InteractionMode.EDIT or self.current_step is None:
+            return self.state
+        return self.current_step.state
 
 
 class BasePuzzlePlugin(ABC):

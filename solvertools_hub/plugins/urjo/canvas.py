@@ -56,8 +56,8 @@ class UrjoCanvas(BasePuzzleCanvas):
         avail_w = max(100.0, self.width() - margin * 2)
         avail_h = max(100.0, self.height() - margin * 2)
         if dim is None:
-            render_state = self.state if self.mode == InteractionMode.EDIT else (self.current_step.state if self.current_step else self.state)
-            dim = render_state.grid_size
+            render_state = self.get_render_state()
+            dim = getattr(render_state, "grid_size", self.state.grid_size)
         cell_size = min(avail_w, avail_h) / dim
         board_size = cell_size * dim
         ox = (self.width() - board_size) / 2

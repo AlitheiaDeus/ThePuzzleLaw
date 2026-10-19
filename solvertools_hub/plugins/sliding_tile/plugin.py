@@ -49,6 +49,7 @@ class SlidingTilePlugin(BasePuzzlePlugin):
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state = SlidingTileState(val)
                 canvas.selected_edit_idx = None
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 
@@ -76,6 +77,7 @@ class SlidingTilePlugin(BasePuzzlePlugin):
 
                 canvas.state.grid = tiles
                 canvas.selected_edit_idx = None
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 

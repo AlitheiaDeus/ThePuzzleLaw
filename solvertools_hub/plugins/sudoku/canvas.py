@@ -21,14 +21,13 @@ class SudokuCanvas(BasePuzzleCanvas):
         super().__init__()
         self.state = initial_state
         self.selected_cell: Optional[Tuple[int, int]] = (0, 0)
-        self.current_step = SolverStep(
-            state=self.state,
-            action_desc="Edit Mode: Click/Arrow keys to navigate, type 1-9 to place numbers, 0/Backspace to clear.",
-        )
+        self.current_step: Optional[SolverStep] = None
 
-    def _grid_geometry(self) -> Tuple[float, float, float]:
+    def _grid_geometry(self, dim: Optional[int] = None) -> Tuple[float, float, float]:
         """Returns (origin_x, origin_y, cell_size)."""
-        dim = self.state.grid_dim
+        if dim is None:
+            render_state = self.get_render_state()
+            dim = getattr(render_state, "grid_dim", self.state.grid_dim)
         margin = 40.0
         avail_w = self.width() - margin * 2
         avail_h = self.height() - margin * 2
@@ -38,8 +37,8 @@ class SudokuCanvas(BasePuzzleCanvas):
         oy = (self.height() - board_size) / 2
         return ox, oy, cell_size
 
-    def _cell_rect(self, r: int, c: int) -> QRectF:
-        ox, oy, cell_size = self._grid_geometry()
+    def _cell_rect(self, r: int, c: int, dim: Optional[int] = None) -> QRectF:
+        ox, oy, cell_size = self._grid_geometry(dim)
         return QRectF(ox + c * cell_size, oy + r * cell_size, cell_size, cell_size)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -110,13 +109,13 @@ class SudokuCanvas(BasePuzzleCanvas):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        render_state: SudokuState = self.current_step.state if self.current_step else self.state
+        render_state: SudokuState = self.get_render_state()  # type: ignore
         highlights = self.current_step.highlights if self.current_step else {}
         dim = render_state.grid_dim
         box_w = render_state.box_w
         box_h = render_state.box_h
 
-        ox, oy, cell_size = self._grid_geometry()
+        ox, oy, cell_size = self._grid_geometry(dim)
         board_size = cell_size * dim
         board_rect = QRectF(ox, oy, board_size, board_size)
 

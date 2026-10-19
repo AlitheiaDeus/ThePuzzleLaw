@@ -20,24 +20,23 @@ class UnrulyCanvas(BasePuzzleCanvas):
         super().__init__()
         self.state = initial_state
         self.edit_tool: str = "paint"  # "paint", "edge_equal", "edge_opposite"
-        self.current_step = SolverStep(
-            state=self.state,
-            action_desc="Edit Mode: Left-Click cell to cycle Sky / Peach / Empty.",
-        )
+        self.current_step: Optional[SolverStep] = None
 
-    def _grid_geometry(self) -> Tuple[float, float, float]:
+    def _grid_geometry(self, dim: Optional[int] = None) -> Tuple[float, float, float]:
         margin = 40.0
         avail_w = self.width() - margin * 2
         avail_h = self.height() - margin * 2
-        dim = self.state.grid_size
+        if dim is None:
+            render_state = self.get_render_state()
+            dim = getattr(render_state, "grid_size", self.state.grid_size)
         cell_size = min(avail_w, avail_h) / dim
         board_size = cell_size * dim
         ox = (self.width() - board_size) / 2
         oy = (self.height() - board_size) / 2
         return ox, oy, cell_size
 
-    def _cell_rect(self, r: int, c: int) -> QRectF:
-        ox, oy, cell_size = self._grid_geometry()
+    def _cell_rect(self, r: int, c: int, dim: Optional[int] = None) -> QRectF:
+        ox, oy, cell_size = self._grid_geometry(dim)
         pad = 2.0
         return QRectF(
             ox + c * cell_size + pad,
@@ -50,9 +49,10 @@ class UnrulyCanvas(BasePuzzleCanvas):
         if self.mode != InteractionMode.EDIT:
             return
 
+        self.current_step = None
         pos = event.position()
         dim = self.state.grid_size
-        ox, oy, cell_size = self._grid_geometry()
+        ox, oy, cell_size = self._grid_geometry(dim)
 
         c = int((pos.x() - ox) // cell_size)
         r = int((pos.y() - oy) // cell_size)
@@ -103,10 +103,10 @@ class UnrulyCanvas(BasePuzzleCanvas):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        render_state: UnrulyState = self.current_step.state if self.current_step else self.state
+        render_state: UnrulyState = self.get_render_state()  # type: ignore
         highlights = self.current_step.highlights if self.current_step else {}
         dim = render_state.grid_size
-        ox, oy, cell_size = self._grid_geometry()
+        ox, oy, cell_size = self._grid_geometry(dim)
 
         # Board background
         board_rect = QRectF(ox - 6, oy - 6, cell_size * dim + 12, cell_size * dim + 12)

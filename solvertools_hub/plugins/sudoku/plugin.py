@@ -62,6 +62,7 @@ class SudokuPlugin(BasePuzzlePlugin):
             elif idx == 2:
                 canvas.state = SudokuState(6, 3, 2)
             canvas.selected_cell = (0, 0)
+            canvas.current_step = None
             canvas.state_modified.emit()
             canvas.update()
 
@@ -72,6 +73,7 @@ class SudokuPlugin(BasePuzzlePlugin):
         def _load_sample():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state = SudokuState(9, 3, 3)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_sample.clicked.connect(_load_sample)
@@ -84,6 +86,7 @@ class SudokuPlugin(BasePuzzlePlugin):
                 bw = canvas.state.box_w
                 bh = canvas.state.box_h
                 canvas.state = SudokuState(dim, bw, bh, [[0] * dim for _ in range(dim)], set())
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_clear.clicked.connect(_clear_board)

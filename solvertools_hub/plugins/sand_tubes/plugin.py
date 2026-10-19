@@ -90,6 +90,7 @@ class SandTubePlugin(BasePuzzlePlugin):
                 canvas.state.tubes.append([])
                 canvas.state.capacities.append(4)
                 canvas.select_tube(len(canvas.state.tubes) - 1)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         add_tube_btn.clicked.connect(_add_tube)
@@ -103,6 +104,7 @@ class SandTubePlugin(BasePuzzlePlugin):
                 canvas.state.capacities.pop()
                 if canvas.selected_tube_idx >= len(canvas.state.tubes):
                     canvas.select_tube(len(canvas.state.tubes) - 1)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         rem_tube_btn.clicked.connect(_rem_tube)
@@ -146,6 +148,7 @@ class SandTubePlugin(BasePuzzlePlugin):
                         if len(canvas.state.tubes[idx]) > new_cap:
                             del canvas.state.tubes[idx][new_cap:]
                         lbl_cap_val.setText(str(new_cap))
+                        canvas.current_step = None
                         canvas.state_modified.emit()
                         canvas.update()
 
@@ -366,6 +369,7 @@ class SandTubePlugin(BasePuzzlePlugin):
         def _on_clear_tube():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state.clear_tube(canvas.selected_tube_idx)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_clear_tube.clicked.connect(_on_clear_tube)
@@ -376,6 +380,7 @@ class SandTubePlugin(BasePuzzlePlugin):
         def _on_clear_all():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state.clear_all_tubes()
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
         btn_clear_all.clicked.connect(_on_clear_all)

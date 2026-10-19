@@ -470,6 +470,19 @@ class TestPlaceholders(unittest.TestCase):
             # Canvas can be instantiated
             canvas = plugin.create_canvas(state)
             self.assertIsNotNone(canvas)
+            self.assertIsNone(canvas.current_step)
+            self.assertEqual(canvas.mode, InteractionMode.EDIT)
+
+    def test_all_active_canvases_not_stuck_in_limbo(self):
+        from solvertools_hub.core.base_plugin import InteractionMode
+        registry = PluginRegistry()
+        registry.auto_discover()
+        for plugin in registry.list_plugins():
+            state = plugin.create_default_state()
+            canvas = plugin.create_canvas(state)
+            self.assertEqual(canvas.mode, InteractionMode.EDIT)
+            self.assertIsNone(canvas.current_step, f"{plugin.name} canvas initialized with non-None current_step!")
+            self.assertIs(canvas.get_render_state(), canvas.state)
 
 
 if __name__ == "__main__":

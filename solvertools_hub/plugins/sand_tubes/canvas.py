@@ -26,10 +26,7 @@ class SandTubeCanvas(BasePuzzleCanvas):
         self.active_brush_color: Optional[int] = None  # None = Select Tube mode
         self.selected_tube_idx: int = 0
         self.setMouseTracking(True)
-        self.current_step = SolverStep(
-            state=self.state,
-            action_desc="Edit Mode: Click slots to paint colors. Click tube lip or label to select without adding color.",
-        )
+        self.current_step: Optional[SolverStep] = None
 
     def select_tube(self, idx: int) -> None:
         if 0 <= idx < len(self.state.tubes):
@@ -107,17 +104,15 @@ class SandTubeCanvas(BasePuzzleCanvas):
             self.state.capacities[tube_idx] = new_cap
             if len(self.state.tubes[tube_idx]) > new_cap:
                 del self.state.tubes[tube_idx][new_cap:]
+            self.current_step = None
             self.state_modified.emit()
-            self.current_step = SolverStep(
-                state=self.state,
-                action_desc=f"Tube #{tube_idx + 1} capacity set to {new_cap}",
-            )
             self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if self.mode != InteractionMode.EDIT:
             return
 
+        self.current_step = None
         pos = event.position()
         tube_idx, slot_idx, region = self._hit_test(pos, self.state)
         if tube_idx is not None:
@@ -144,26 +139,14 @@ class SandTubeCanvas(BasePuzzleCanvas):
                     if current_col == self.active_brush_color:
                         # Clicking same color toggles it off
                         self.state.set_slot(tube_idx, slot_idx, None)
-                        self.current_step = SolverStep(
-                            state=self.state,
-                            action_desc=f"Cleared slot #{slot_idx + 1} of Tube #{tube_idx + 1}",
-                        )
                     else:
                         self.state.set_slot(tube_idx, slot_idx, self.active_brush_color)
-                        self.current_step = SolverStep(
-                            state=self.state,
-                            action_desc=f"Set Tube #{tube_idx + 1} slot #{slot_idx + 1} to Color #{self.active_brush_color + 1}",
-                        )
                     self.state_modified.emit()
                     self.update()
 
                 elif event.button() == Qt.RightButton:
                     # Right-click erases slot
                     self.state.set_slot(tube_idx, slot_idx, None)
-                    self.current_step = SolverStep(
-                        state=self.state,
-                        action_desc=f"Cleared slot #{slot_idx + 1} of Tube #{tube_idx + 1}",
-                    )
                     self.state_modified.emit()
                     self.update()
 
@@ -205,7 +188,7 @@ class SandTubeCanvas(BasePuzzleCanvas):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        render_state: SandTubeState = self.current_step.state if self.current_step else self.state
+        render_state: SandTubeState = self.get_render_state()  # type: ignore
         highlights = self.current_step.highlights if self.current_step else {}
         total = len(render_state.tubes)
         if total == 0:

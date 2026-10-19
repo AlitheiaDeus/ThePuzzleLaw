@@ -241,6 +241,8 @@ class PuzzleHubWindow(QMainWindow):
             self.log_drawer.log_info(f"Loaded plugin: {self.active_plugin.name}")
 
         self.active_canvas = self.active_plugin.create_canvas(initial_state)
+        self.active_canvas.set_mode(InteractionMode.EDIT)
+        self.active_canvas.current_step = None
         self.canvas_layout.addWidget(self.active_canvas)
 
         # Instantiate tool strip if provided
@@ -264,6 +266,8 @@ class PuzzleHubWindow(QMainWindow):
 
     def _on_canvas_modified(self) -> None:
         """Called whenever the user mutates puzzle state in EDIT mode."""
+        if self.active_canvas:
+            self.active_canvas.current_step = None
         self.timeline.clear()
         self.timeline_idx = 0
         self.transport_bar.configure_timeline(0)

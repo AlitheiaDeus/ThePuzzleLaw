@@ -51,6 +51,7 @@ class FlipPlugin(BasePuzzlePlugin):
         def _update_dims():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state = FlipState(row_spin.value(), col_spin.value())
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 
@@ -71,6 +72,7 @@ class FlipPlugin(BasePuzzlePlugin):
                     rr = random.randint(0, row_spin.value() - 1)
                     cc = random.randint(0, col_spin.value() - 1)
                     canvas.state.toggle_cell_and_neighbors(rr, cc)
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 
@@ -81,6 +83,7 @@ class FlipPlugin(BasePuzzlePlugin):
         def _clear_all():
             if canvas.mode == InteractionMode.EDIT:
                 canvas.state.grid = [[0] * canvas.state.cols for _ in range(canvas.state.rows)]
+                canvas.current_step = None
                 canvas.state_modified.emit()
                 canvas.update()
 

@@ -21,13 +21,12 @@ class SlidingTileCanvas(BasePuzzleCanvas):
         super().__init__()
         self.state = initial_state
         self.selected_edit_idx: Optional[int] = None
-        self.current_step = SolverStep(
-            state=self.state,
-            action_desc="Edit Mode: Click two tiles to swap, or use + / - size."
-        )
+        self.current_step: Optional[SolverStep] = None
 
-    def _cell_rect(self, idx: int) -> QRectF:
-        size = self.state.size
+    def _cell_rect(self, idx: int, size: Optional[int] = None) -> QRectF:
+        if size is None:
+            render_state = self.get_render_state()
+            size = getattr(render_state, "size", self.state.size)
         board_dim = min(self.width(), self.height()) - 60
         cell_dim = board_dim / size
         ox = (self.width() - board_dim) / 2
@@ -39,6 +38,7 @@ class SlidingTileCanvas(BasePuzzleCanvas):
         if self.mode != InteractionMode.EDIT:
             return
 
+        self.current_step = None
         pos = event.position()
         for idx in range(self.state.size * self.state.size):
             if self._cell_rect(idx).contains(pos):
@@ -49,7 +49,6 @@ class SlidingTileCanvas(BasePuzzleCanvas):
                     g = self.state.grid
                     g[self.selected_edit_idx], g[idx] = g[idx], g[self.selected_edit_idx]
                     self.selected_edit_idx = None
-                    self.current_step = SolverStep(state=self.state, action_desc="Swapped tiles manually.")
                     self.state_modified.emit()
                 self.update()
                 return
@@ -62,7 +61,7 @@ class SlidingTileCanvas(BasePuzzleCanvas):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        render_state: SlidingTileState = self.current_step.state if self.current_step else self.state
+        render_state: SlidingTileState = self.get_render_state()  # type: ignore
         highlights = self.current_step.highlights if self.current_step else {}
 
         # Draw background container frame

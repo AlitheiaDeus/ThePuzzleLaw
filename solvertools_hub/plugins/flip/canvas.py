@@ -20,24 +20,25 @@ class FlipCanvas(BasePuzzleCanvas):
     def __init__(self, initial_state: FlipState):
         super().__init__()
         self.state = initial_state
-        self.current_step = SolverStep(
-            state=self.state,
-            action_desc="Edit Mode: Left-Click cell to toggle light; Right-Click to simulate actual game press.",
-        )
+        self.current_step: Optional[SolverStep] = None
 
-    def _grid_geometry(self) -> Tuple[float, float, float]:
+    def _grid_geometry(self, rows: Optional[int] = None, cols: Optional[int] = None) -> Tuple[float, float, float]:
         margin = 40.0
         avail_w = self.width() - margin * 2
         avail_h = self.height() - margin * 2
-        cell_size = min(avail_w / self.state.cols, avail_h / self.state.rows)
-        board_w = cell_size * self.state.cols
-        board_h = cell_size * self.state.rows
+        if rows is None or cols is None:
+            render_state = self.get_render_state()
+            rows = getattr(render_state, "rows", self.state.rows)
+            cols = getattr(render_state, "cols", self.state.cols)
+        cell_size = min(avail_w / cols, avail_h / rows)
+        board_w = cell_size * cols
+        board_h = cell_size * rows
         ox = (self.width() - board_w) / 2
         oy = (self.height() - board_h) / 2
         return ox, oy, cell_size
 
-    def _cell_rect(self, r: int, c: int) -> QRectF:
-        ox, oy, cell_size = self._grid_geometry()
+    def _cell_rect(self, r: int, c: int, rows: Optional[int] = None, cols: Optional[int] = None) -> QRectF:
+        ox, oy, cell_size = self._grid_geometry(rows, cols)
         pad = 4.0
         return QRectF(
             ox + c * cell_size + pad,
@@ -50,6 +51,7 @@ class FlipCanvas(BasePuzzleCanvas):
         if self.mode != InteractionMode.EDIT:
             return
 
+        self.current_step = None
         pos = event.position()
         for r in range(self.state.rows):
             for c in range(self.state.cols):
@@ -69,10 +71,10 @@ class FlipCanvas(BasePuzzleCanvas):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        render_state: FlipState = self.current_step.state if self.current_step else self.state
+        render_state: FlipState = self.get_render_state()  # type: ignore
         highlights = self.current_step.highlights if self.current_step else {}
 
-        ox, oy, cell_size = self._grid_geometry()
+        ox, oy, cell_size = self._grid_geometry(render_state.rows, render_state.cols)
         board_w = cell_size * render_state.cols
         board_h = cell_size * render_state.rows
         board_rect = QRectF(ox - 8, oy - 8, board_w + 16, board_h + 16)
