@@ -4,7 +4,7 @@ Renders illuminated neon tiles, dark chalkboard off-cells, and target press indi
 Supports direct single-cell toggle (Left-Click) and full neighbor toggle (Right-Click) in EDIT mode.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPen

@@ -15,8 +15,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import os
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 import unittest
+from PySide6.QtWidgets import QApplication
+
+_app = QApplication.instance()
+if not _app:
+    _app = QApplication(sys.argv)
 from solvertools_hub.theme import ChalkTheme
+from solvertools_hub.core.base_plugin import InteractionMode
 from solvertools_hub.core.registry import PluginRegistry
 from solvertools_hub.plugins.sliding_tile import SlidingTilePlugin, SlidingTileState, SlidingTileSolver
 from solvertools_hub.plugins.sand_tubes import SandTubePlugin, SandTubeState, SandTubeSolver
@@ -474,7 +483,6 @@ class TestPlaceholders(unittest.TestCase):
             self.assertEqual(canvas.mode, InteractionMode.EDIT)
 
     def test_all_active_canvases_not_stuck_in_limbo(self):
-        from solvertools_hub.core.base_plugin import InteractionMode
         registry = PluginRegistry()
         registry.auto_discover()
         for plugin in registry.list_plugins():
