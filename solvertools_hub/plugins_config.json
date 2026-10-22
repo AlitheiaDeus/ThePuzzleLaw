@@ -38,38 +38,38 @@
       "notes": "15-puzzle / NxN sliding tile solver with Manhattan A*"
     },
     "Chess Attack": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Tactical / Board",
       "notes": "Zoned board tactical piece placement engine (Queen, Extended King, Superking)"
     },
     "The Cipher Room": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Crypt & Signal",
       "notes": "Smooshed unspaced Morse beam-search & classical cryptanalysis suite"
     },
     "Flow Free": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Paths / Topological",
       "notes": "Topological 100% saturation path router & Numberlink solver"
     },
     "Maze Navigator": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Navigators / Geometry",
       "notes": "Orthogonal, Hexagonal & Euclidean 2D pathfinding navigators"
     },
     "Loop Family": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Loops & Boundaries",
       "notes": "Slitherlink, Palisade, and Masyu single-loop solvers"
     },
     "Packing Grids": {
-      "enabled": false,
-      "status": "wip",
+      "enabled": true,
+      "status": "active",
       "category": "Exact Cover & Packing",
       "notes": "Nonograms (Picross) and Knuth Algorithm X DLX polyomino packings"
     }

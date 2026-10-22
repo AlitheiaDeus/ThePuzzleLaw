@@ -23,6 +23,7 @@ from solvertools_hub.plugins.sudoku import SudokuPlugin
 from solvertools_hub.plugins.flip import FlipPlugin
 from solvertools_hub.plugins.unruly import UnrulyPlugin
 from solvertools_hub.plugins.urjo import UrjoPlugin
+from solvertools_hub.core.base_plugin import InteractionMode
 from solvertools_hub.ui.hub_window import PuzzleHubWindow
 
 
@@ -183,6 +184,24 @@ class TestUILaunch(unittest.TestCase):
         self.assertEqual(canvas.state.get_used_colors(), [])
         btn_add.click()
         self.assertEqual(canvas.active_brush_color, 0)
+
+        window.close()
+
+    def test_hub_window_with_all_12_discovered_plugins(self):
+        registry = PluginRegistry()
+        registry.auto_discover()
+        plugins = registry.list_plugins()
+        self.assertEqual(len(plugins), 12)
+
+        window = PuzzleHubWindow(plugins)
+        self.assertEqual(window.nav_list.count(), 12)
+
+        for i in range(12):
+            window.nav_list.setCurrentRow(i)
+            self.app.processEvents()
+            self.assertIsNotNone(window.active_plugin)
+            self.assertIsNotNone(window.active_canvas)
+            self.assertEqual(window.active_canvas.mode, InteractionMode.EDIT)
 
         window.close()
 

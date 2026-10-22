@@ -41,7 +41,7 @@ class ChessAttackCanvas(BasePuzzleCanvas):
         w, h = self.width(), self.height()
         painter.fillRect(0, 0, w, h, QColor(ChalkTheme.BG_CHALK_BLACK))
 
-        st = self.state if self.mode == InteractionMode.EDIT or not self.current_step else self.current_step.state
+        st = self.get_render_state()
         if not isinstance(st, ChessAttackState):
             st = self.state
 

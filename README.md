@@ -95,6 +95,7 @@ The_Puzzle_Law/
 ├── Snippets To Integrate/       # Staging area for upcoming puzzle algorithms
 ├── Prebuild_Blueprint.md        # Complete architectural blueprint and technical spec
 ├── Waypoint_Implementation_Plan.md # Milestone tracker
+├── kanban.md                    # Visual task board, active milestones, and bug tracker
 └── environment_pylearn.yml      # Conda environment definition
 ```
 

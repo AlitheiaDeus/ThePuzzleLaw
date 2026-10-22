@@ -424,23 +424,40 @@ class TestRegistry(unittest.TestCase):
         registry = PluginRegistry()
         registry.auto_discover()
         active_names = [p.name for p in registry.list_plugins()]
-        disabled_names = [p.name for p in registry.list_disabled_plugins()]
 
-        # Active plugins
-        self.assertIn("Urjo", active_names)
-        self.assertIn("Liquid Sorter Pro", active_names)
-        self.assertIn("Sliding Tile (N-Puzzle)", active_names)
-        self.assertIn("Sudoku (Constraint Grid)", active_names)
-        self.assertIn("Flip (Lights Out)", active_names)
-        self.assertIn("Unruly (Binary Puzzle)", active_names)
+        # All 12 plugins are active and linked into the hub
+        expected_active = [
+            "Urjo",
+            "Liquid Sorter Pro",
+            "Sliding Tile (N-Puzzle)",
+            "Sudoku (Constraint Grid)",
+            "Flip (Lights Out)",
+            "Unruly (Binary Puzzle)",
+            "Chess Attack",
+            "The Cipher Room",
+            "Flow Free",
+            "Maze Navigator",
+            "Loop Family",
+            "Packing Grids",
+        ]
+        for name in expected_active:
+            self.assertIn(name, active_names)
+        self.assertEqual(len(active_names), 12)
 
-        # Curtained draft plugins
-        self.assertIn("Chess Attack", disabled_names)
-        self.assertIn("The Cipher Room", disabled_names)
-        self.assertIn("Flow Free", disabled_names)
-        self.assertIn("Maze Navigator", disabled_names)
-        self.assertIn("Loop Family", disabled_names)
-        self.assertIn("Packing Grids", disabled_names)
+        # Test curtain mechanism with an explicit disabled configuration
+        import tempfile
+        import json
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tf:
+            json.dump({"plugins": {"Chess Attack": {"enabled": False}}}, tf)
+            temp_path = tf.name
+        try:
+            curtain_reg = PluginRegistry(temp_path)
+            curtain_reg.auto_discover()
+            self.assertIn("Chess Attack", [p.name for p in curtain_reg.list_disabled_plugins()])
+            self.assertNotIn("Chess Attack", [p.name for p in curtain_reg.list_plugins()])
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 
 class TestPlaceholders(unittest.TestCase):

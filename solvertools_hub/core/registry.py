@@ -148,6 +148,9 @@ class PluginRegistry:
                         try:
                             inst = obj()
                             plugin_name = inst.name
+                            if plugin_name in self._plugins or plugin_name in self._disabled_plugins:
+                                continue
+
                             is_wip = getattr(inst, "is_wip", False)
                             enabled = self.is_plugin_enabled(plugin_name, is_wip=is_wip)
 
