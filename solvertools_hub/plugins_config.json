@@ -72,6 +72,12 @@
       "status": "active",
       "category": "Exact Cover & Packing",
       "notes": "Nonograms (Picross) and Knuth Algorithm X DLX polyomino packings"
+    },
+    "Flood": {
+      "enabled": true,
+      "status": "active",
+      "category": "Grid / Graph Search",
+      "notes": "Flood-It optimal minimum-move color flood engine with IDA*"
     }
   },
   "default_enabled": true

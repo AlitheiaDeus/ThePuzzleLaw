@@ -33,6 +33,7 @@ from solvertools_hub.plugins.sudoku import SudokuPlugin, SudokuState, SudokuSolv
 from solvertools_hub.plugins.flip import FlipPlugin, FlipState, FlipSolver
 from solvertools_hub.plugins.unruly import UnrulyPlugin, UnrulyState, UnrulySolver
 from solvertools_hub.plugins.urjo import UrjoPlugin, UrjoState, UrjoSolver
+from solvertools_hub.plugins.flood import FloodPlugin, FloodState, FloodSolver, FloodCanvas
 
 
 class TestTheme(unittest.TestCase):
@@ -439,10 +440,11 @@ class TestRegistry(unittest.TestCase):
             "Maze Navigator",
             "Loop Family",
             "Packing Grids",
+            "Flood",
         ]
         for name in expected_active:
             self.assertIn(name, active_names)
-        self.assertEqual(len(active_names), 12)
+        self.assertEqual(len(active_names), 13)
 
         # Test curtain mechanism with an explicit disabled configuration
         import tempfile
@@ -458,6 +460,108 @@ class TestRegistry(unittest.TestCase):
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
+
+class TestFlood(unittest.TestCase):
+    def test_state_validation_valid(self):
+        st = FloodState(rows=3, cols=3, num_colors=4, grid=[
+            [0, 1, 2],
+            [3, 0, 1],
+            [2, 3, 0],
+        ])
+        ok, reason = st.validate()
+        self.assertTrue(ok, reason)
+
+    def test_state_validation_invalid_dimensions(self):
+        st = FloodState(rows=1, cols=3, num_colors=4, grid=[[0, 1, 2]])
+        ok, reason = st.validate()
+        self.assertFalse(ok)
+        self.assertIn("at least 2x2", reason)
+
+    def test_state_validation_invalid_color(self):
+        st = FloodState(rows=2, cols=2, num_colors=4, grid=[
+            [0, 1],
+            [2, 9],  # 9 is out of range for num_colors=4
+        ])
+        ok, reason = st.validate()
+        self.assertFalse(ok)
+        self.assertIn("invalid color", reason)
+
+    def test_serialization_roundtrip(self):
+        st = FloodState(rows=4, cols=4, num_colors=5, grid=[
+            [0, 1, 2, 3],
+            [4, 0, 1, 2],
+            [3, 4, 0, 1],
+            [2, 3, 4, 0],
+        ])
+        raw = st.serialize()
+        restored = FloodState.deserialize(raw)
+        self.assertEqual(restored.rows, st.rows)
+        self.assertEqual(restored.cols, st.cols)
+        self.assertEqual(restored.num_colors, st.num_colors)
+        self.assertEqual(restored.grid, st.grid)
+
+    def test_mechanics_flood_region_and_moves(self):
+        # 3x3 grid
+        # [0, 0, 1]
+        # [0, 2, 1]
+        # [1, 1, 1]
+        grid = [
+            [0, 0, 1],
+            [0, 2, 1],
+            [1, 1, 1],
+        ]
+        st = FloodState(rows=3, cols=3, num_colors=3, grid=grid)
+        initial_region = st.get_flooded_region()
+        self.assertEqual(initial_region, {(0, 0), (0, 1), (1, 0)})
+
+        # Change to color 1 (adjacent 1s should now be absorbed)
+        st1 = st.apply_move(1)
+        r1 = st1.get_flooded_region()
+        self.assertIn((0, 2), r1)
+        self.assertIn((1, 2), r1)
+        self.assertIn((2, 0), r1)
+        self.assertIn((2, 1), r1)
+        self.assertIn((2, 2), r1)
+        self.assertNotIn((1, 1), r1)  # (1, 1) is still color 2
+        self.assertEqual(len(r1), 8)
+
+        # Change to color 2 (absorbs last cell (1, 1))
+        st2 = st1.apply_move(2)
+        self.assertTrue(st2.is_solved())
+        self.assertEqual(len(st2.get_flooded_region()), 9)
+
+    def test_solver_optimal_solution(self):
+        grid = [
+            [0, 0, 1],
+            [0, 2, 1],
+            [1, 1, 1],
+        ]
+        st = FloodState(rows=3, cols=3, num_colors=3, grid=grid)
+        solver = FloodSolver()
+        steps = list(solver.solve(st))
+        self.assertGreaterEqual(len(steps), 3)
+
+        # First step is initial state
+        self.assertEqual(steps[0].action_desc[:7], "Initial")
+        # Final step is solved
+        self.assertIn("Optimal Flood Completed in 2 moves", steps[-1].action_desc)
+        final_state: FloodState = steps[-1].state
+        self.assertTrue(final_state.is_solved())
+
+    def test_canvas_and_tool_strip_sanity(self):
+        plugin = FloodPlugin()
+        state = plugin.create_default_state()
+        self.assertEqual(state.rows, 12)
+        self.assertEqual(state.cols, 12)
+        self.assertEqual(state.num_colors, 6)
+
+        canvas = plugin.create_canvas(state)
+        self.assertIsNone(canvas.current_step)
+        self.assertEqual(canvas.mode, InteractionMode.EDIT)
+        self.assertIs(canvas.get_render_state(), canvas.state)
+
+        strip = plugin.create_tool_strip(canvas)
+        self.assertIsNotNone(strip)
 
 
 class TestPlaceholders(unittest.TestCase):

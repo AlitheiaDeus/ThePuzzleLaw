@@ -187,16 +187,16 @@ class TestUILaunch(unittest.TestCase):
 
         window.close()
 
-    def test_hub_window_with_all_12_discovered_plugins(self):
+    def test_hub_window_with_all_discovered_plugins(self):
         registry = PluginRegistry()
         registry.auto_discover()
         plugins = registry.list_plugins()
-        self.assertEqual(len(plugins), 12)
+        self.assertGreaterEqual(len(plugins), 13)
 
         window = PuzzleHubWindow(plugins)
-        self.assertEqual(window.nav_list.count(), 12)
+        self.assertEqual(window.nav_list.count(), len(plugins))
 
-        for i in range(12):
+        for i in range(len(plugins)):
             window.nav_list.setCurrentRow(i)
             self.app.processEvents()
             self.assertIsNotNone(window.active_plugin)
