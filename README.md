@@ -8,6 +8,10 @@
 > **High-Performance Modular Puzzle Solver & Interactive Visualizer Suite**  
 > Built with Python & PySide6, featuring a chalkboard-neon visual aesthetic, asynchronous generator-driven solver execution, and interactive step scrubbing.
 
+<p align="center">
+  <img src="docs/images/puzzle_suite_interface.jpg" alt="The Puzzle Law Modular Solver Suite" width="100%" />
+</p>
+
 ---
 
 ## Overview
