@@ -28,7 +28,8 @@ def test_index_html_served():
 def test_sync_solve_and_stream_endpoints():
     solvers = client.get("/api/solvers").json()["solvers"]
     sudoku_meta = next(s for s in solvers if s["slug"] == "sudoku")
-    preset = copy.deepcopy(sudoku_meta["presets"]["Mini 4x4"])
+    first_preset = next(iter(sudoku_meta["presets"].values()))
+    preset = copy.deepcopy(first_preset)
 
     r_sync = client.post("/api/solve/sudoku", json={"state": preset, "params": {}})
     assert r_sync.status_code == 200

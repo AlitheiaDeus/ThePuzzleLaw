@@ -31,7 +31,7 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "5x5 Numberlink (4 colors)": {
+        "5x5": {
             "mode": "numberlink",
             "board": [
                 [1, 0, 0, 0, 2],
@@ -41,7 +41,7 @@ META: Dict[str, Any] = {
                 [0, 0, 0, 0, 2],
             ],
         },
-        "5x5 Hamiltonian Checkpoints": {
+        "5x5 Checkpoints": {
             "mode": "checkpoints",
             "board": [
                 [1, 0, 0, 0, 0],

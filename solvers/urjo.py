@@ -19,7 +19,7 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "6x6 Standard": {
+        "6x6": {
             "board": [
                 [1, 0, 0, 0, 2, 0],
                 [0, 2, 0, 0, 0, 0],
@@ -37,7 +37,7 @@ META: Dict[str, Any] = {
                 [None, None, None, None, None, 1],
             ],
         },
-        "4x4 Quick": {
+        "4x4": {
             "board": [
                 [1, 0, 0, 0],
                 [0, 1, 2, 0],

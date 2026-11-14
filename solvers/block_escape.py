@@ -18,7 +18,7 @@ META: Dict[str, Any] = {
         "editable": False,
     },
     "presets": {
-        "Portal & Lockstep Chains": {
+        "Portal Chains": {
             "terrain": (
                 "A B o o o o o o D C\n"
                 "A B o o o o o o D C\n"
@@ -40,12 +40,12 @@ META: Dict[str, Any] = {
                 [["w", "e"], "invert"],
             ],
         },
-        "Simple Ice & Target": {
+        "Ice Target": {
             "terrain": (
                 "o o o x o\n"
                 "o x o o o\n"
                 "o o o x T\n"
-                "o o o o o"
+                "o o o o x"
             ),
             "blocks": (
                 "t' o o o o\n"

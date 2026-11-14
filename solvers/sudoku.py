@@ -18,7 +18,7 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "Classic 9x9": {
+        "9x9": {
             "grid_dim": 9,
             "box_w": 3,
             "box_h": 3,
@@ -34,7 +34,7 @@ META: Dict[str, Any] = {
                 [0, 0, 0, 0, 8, 0, 0, 7, 9],
             ],
         },
-        "Hard 9x9": {
+        "9x9 Hard": {
             "grid_dim": 9,
             "box_w": 3,
             "box_h": 3,
@@ -50,7 +50,7 @@ META: Dict[str, Any] = {
                 [0, 9, 0, 0, 0, 0, 4, 0, 0],
             ],
         },
-        "Mini 4x4": {
+        "4x4": {
             "grid_dim": 4,
             "box_w": 2,
             "box_h": 2,

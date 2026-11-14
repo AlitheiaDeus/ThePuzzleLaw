@@ -31,7 +31,7 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "6x6 Starter (5 colors)": {
+        "6x6": {
             "num_colors": 5,
             "board": [
                 [0, 1, 2, 3, 4, 0],
@@ -42,7 +42,7 @@ META: Dict[str, Any] = {
                 [2, 2, 3, 4, 0, 4],
             ],
         },
-        "8x8 Challenge (6 colors)": {
+        "8x8": {
             "num_colors": 6,
             "board": [
                 [0, 0, 1, 2, 3, 4, 5, 1],

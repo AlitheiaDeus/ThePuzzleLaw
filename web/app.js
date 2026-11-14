@@ -52,6 +52,42 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+const DRAFT_PREFIX = "tpl_draft_";
+const ACTIVE_SOLVER_KEY = "tpl_active_solver";
+
+function saveDraft() {
+  if (!state.activeSolver || !state.editState) return;
+  try {
+    localStorage.setItem(
+      DRAFT_PREFIX + state.activeSolver.slug,
+      JSON.stringify({
+        activePresetName: state.activePresetName,
+        editState: state.editState,
+        params: state.params,
+      })
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function loadDraft(slug) {
+  try {
+    const raw = localStorage.getItem(DRAFT_PREFIX + slug);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(slug) {
+  try {
+    localStorage.removeItem(DRAFT_PREFIX + slug);
+  } catch {
+    // Ignore
+  }
+}
+
 function isPlaybackMode() {
   return state.steps.length > 0;
 }
@@ -87,8 +123,10 @@ function updateTransport() {
   els.btnPlay.disabled = total <= 1;
 
   if (hasSteps) {
-    els.modePill.textContent = "PLAYBACK";
+    els.modePill.textContent = "PLAYBACK · Edit";
     els.modePill.className = "mode-tag playback";
+    els.modePill.style.cursor = "pointer";
+    els.modePill.title = "Click to exit playback and edit your board";
     const step = state.steps[state.stepIdx];
     els.stepDescLive.textContent = step.desc || "";
     const statsEntries = Object.entries(step.stats || {});
@@ -98,6 +136,8 @@ function updateTransport() {
   } else {
     els.modePill.textContent = "EDIT";
     els.modePill.className = "mode-tag edit";
+    els.modePill.style.cursor = "default";
+    els.modePill.title = "";
     els.stepDescLive.textContent = "Ready. Edit the puzzle or click Solve.";
     els.stepStatsLive.innerHTML = "";
   }
@@ -122,6 +162,7 @@ async function renderStage() {
   const onEdit = (newState) => {
     clearPlayback();
     state.editState = newState;
+    saveDraft();
     renderStage();
   };
 
@@ -168,12 +209,25 @@ function renderSidebar(filterText = "") {
   }
 }
 
-function renderParams(solver) {
+function extractPresetParams(solver, presetState) {
+  if (!presetState) return null;
+  const out = {};
+  for (const p of solver.params || []) {
+    if (p.key in presetState) {
+      out[p.key] = presetState[p.key];
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function renderParams(solver, savedParams = null) {
   els.dynamicParams.innerHTML = "";
   state.params = {};
+
   for (const p of solver.params || []) {
     if (p.type === "textarea") continue; // Handled inside JSON/custom or preset
-    state.params[p.key] = p.default;
+    const initVal = savedParams && p.key in savedParams ? savedParams[p.key] : p.default;
+    state.params[p.key] = initVal;
     const wrap = document.createElement("label");
     wrap.textContent = p.label + " ";
 
@@ -183,28 +237,31 @@ function renderParams(solver) {
         const o = document.createElement("option");
         o.value = opt;
         o.textContent = opt;
-        if (opt === p.default) o.selected = true;
+        if (opt === initVal) o.selected = true;
         sel.appendChild(o);
       }
       sel.addEventListener("change", () => {
         state.params[p.key] = sel.value;
+        saveDraft();
       });
       wrap.appendChild(sel);
     } else if (p.type === "bool") {
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.checked = Boolean(p.default);
+      cb.checked = Boolean(initVal);
       cb.addEventListener("change", () => {
         state.params[p.key] = cb.checked;
+        saveDraft();
       });
       wrap.appendChild(cb);
     } else {
       const inp = document.createElement("input");
       inp.type = "text";
-      inp.value = p.default ?? "";
+      inp.value = initVal ?? "";
       inp.style.width = "100px";
       inp.addEventListener("input", () => {
         state.params[p.key] = inp.value;
+        saveDraft();
       });
       wrap.appendChild(inp);
     }
@@ -216,6 +273,10 @@ function selectSolver(slug) {
   const solver = state.solvers.find((s) => s.slug === slug);
   if (!solver) return;
 
+  if (state.activeSolver) {
+    saveDraft();
+  }
+
   if (state.abortController) {
     state.abortController.abort();
   }
@@ -223,6 +284,11 @@ function selectSolver(slug) {
   els.logEntries.innerHTML = "";
 
   state.activeSolver = solver;
+  try {
+    localStorage.setItem(ACTIVE_SOLVER_KEY, slug);
+  } catch {
+    // Ignore
+  }
   els.solverTitle.textContent = solver.name;
   els.solverTitle.title = solver.description || "";
 
@@ -235,9 +301,19 @@ function selectSolver(slug) {
     els.presetSelect.appendChild(o);
   }
 
-  state.activePresetName = presetNames[0] || "";
-  state.editState = state.activePresetName ? deepClone(solver.presets[state.activePresetName]) : {};
-  renderParams(solver);
+  const draft = loadDraft(slug);
+  if (draft && draft.editState) {
+    state.activePresetName = draft.activePresetName && presetNames.includes(draft.activePresetName)
+      ? draft.activePresetName
+      : (presetNames[0] || "");
+    els.presetSelect.value = state.activePresetName;
+    state.editState = draft.editState;
+    renderParams(solver, draft.params || null);
+  } else {
+    state.activePresetName = presetNames[0] || "";
+    state.editState = state.activePresetName ? deepClone(solver.presets[state.activePresetName]) : {};
+    renderParams(solver, extractPresetParams(solver, state.editState));
+  }
   renderSidebar(els.solverFilter.value);
   renderStage();
 }
@@ -333,13 +409,17 @@ els.presetSelect.addEventListener("change", () => {
   clearPlayback();
   state.activePresetName = els.presetSelect.value;
   state.editState = deepClone(state.activeSolver.presets[state.activePresetName] || {});
+  renderParams(state.activeSolver, extractPresetParams(state.activeSolver, state.editState));
+  saveDraft();
   renderStage();
 });
 
 els.btnReset.addEventListener("click", () => {
   if (!state.activeSolver) return;
   clearPlayback();
+  clearDraft(state.activeSolver.slug);
   state.editState = deepClone(state.activeSolver.presets[state.activePresetName] || {});
+  renderParams(state.activeSolver, extractPresetParams(state.activeSolver, state.editState));
   renderStage();
 });
 
@@ -366,6 +446,13 @@ els.btnTheme.addEventListener("click", () => {
 
 els.btnLogs.addEventListener("click", () => {
   els.logDrawer.classList.toggle("collapsed");
+});
+
+els.modePill.addEventListener("click", () => {
+  if (isPlaybackMode()) {
+    clearPlayback();
+    renderStage();
+  }
 });
 
 els.btnSolve.addEventListener("click", runSolve);
@@ -425,6 +512,7 @@ els.btnJsonApply.addEventListener("click", () => {
     const parsed = JSON.parse(els.jsonTextarea.value);
     clearPlayback();
     state.editState = parsed;
+    saveDraft();
     els.jsonModal.classList.add("hidden");
     renderStage();
   } catch (e) {
@@ -442,7 +530,14 @@ async function init() {
   state.solvers = data.solvers || [];
   renderSidebar();
   if (state.solvers.length > 0) {
-    selectSolver(state.solvers[0].slug);
+    let savedSlug = null;
+    try {
+      savedSlug = localStorage.getItem(ACTIVE_SOLVER_KEY);
+    } catch {
+      // Ignore
+    }
+    const target = state.solvers.find((s) => s.slug === savedSlug) || state.solvers[0];
+    selectSolver(target.slug);
   }
 }
 

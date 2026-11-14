@@ -21,7 +21,7 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "5x5 Zoned Superking": {
+        "5x5 Superking": {
             "piece_type": "Superking",
             "zones": [
                 [0, 0, 1, 1, 1],
@@ -32,7 +32,7 @@ META: Dict[str, Any] = {
             ],
             "board": [[0] * 5 for _ in range(5)],
         },
-        "6x6 Zoned Queen": {
+        "6x6 Queen": {
             "piece_type": "Queen",
             "zones": [
                 [0, 0, 1, 1, 2, 2],
@@ -44,7 +44,7 @@ META: Dict[str, Any] = {
             ],
             "board": [[0] * 6 for _ in range(6)],
         },
-        "6x6 Zoned Superking": {
+        "6x6 Superking": {
             "piece_type": "Superking",
             "zones": [
                 [0, 0, 0, 1, 1, 2],

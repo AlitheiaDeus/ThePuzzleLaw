@@ -14,7 +14,7 @@ META: Dict[str, Any] = {
     "custom_view": "/renderers/custom/liquid_tubes.js",
     "description": "A* pouring solver with variable tube capacities and symmetry-breaking pruning.",
     "presets": {
-        "Classic 5-Tube (3 colors)": {
+        "5 Tubes": {
             "capacities": [4, 4, 4, 4, 4],
             "allow_split_colors": False,
             "tubes": [
@@ -25,7 +25,7 @@ META: Dict[str, Any] = {
                 [],
             ],
         },
-        "Variable Capacity (4 colors)": {
+        "6 Tubes": {
             "capacities": [4, 4, 4, 4, 3, 3],
             "allow_split_colors": False,
             "tubes": [

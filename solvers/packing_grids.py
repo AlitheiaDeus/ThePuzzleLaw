@@ -19,7 +19,7 @@ META: Dict[str, Any] = {
         "editable": False,
     },
     "presets": {
-        "5x5 Heart": {
+        "5x5": {
             "row_clues": [[1, 1], [5], [5], [3], [1]],
             "col_clues": [[2], [4], [4], [4], [2]],
             "board": [[0] * 5 for _ in range(5)],
@@ -29,7 +29,7 @@ META: Dict[str, Any] = {
             "col_clues": [[1], [3], [5], [3], [1]],
             "board": [[0] * 5 for _ in range(5)],
         },
-        "6x6 Hourglass": {
+        "6x6": {
             "row_clues": [[6], [4], [2], [2], [4], [6]],
             "col_clues": [[1, 1], [2, 2], [6], [6], [2, 2], [1, 1]],
             "board": [[0] * 6 for _ in range(6)],

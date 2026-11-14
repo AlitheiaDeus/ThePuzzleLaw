@@ -41,22 +41,22 @@ META: Dict[str, Any] = {
     "renderer": "text",
     "description": "Decodes spaced Morse, phonetic dit/dah, binary 0/1, and unspaced/smooshed Morse streams via Trie beam search.",
     "presets": {
-        "Smooshed Morse (HELLO WORLD)": {
+        "Smooshed": {
             "text": "......-...-..---.--.---.-..-..-..",
             "mode": "Smooshed Word Beam Search",
             "language": "en",
         },
-        "Spaced Morse": {
+        "Spaced": {
             "text": "- .... . / .--. ..- --.. --.. .-.. . / .-.. .- .--",
             "mode": "Spaced Morse Decode",
             "language": "en",
         },
-        "Binary Polarity (0/1)": {
+        "Binary 0/1": {
             "text": "000010100100100111",
             "mode": "Smooshed Word Beam Search",
             "language": "en",
         },
-        "Encode Plaintext -> Morse": {
+        "Encode": {
             "text": "THE PUZZLE LAW",
             "mode": "Encode to Morse",
             "language": "en",

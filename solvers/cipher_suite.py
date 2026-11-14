@@ -14,27 +14,27 @@ META: Dict[str, Any] = {
     "renderer": "text",
     "description": "Caesar/ROT brute-force, Atbash, Reverse, Vigenère, Base64/Hex/Binary, and character frequency analysis.",
     "presets": {
-        "Caesar Shift Hint": {
+        "Caesar": {
             "text": "(13) Gur Chmmyr Ynj vf nyvir!",
             "mode": "Caesar Auto / Brute-Force",
             "key": "3",
         },
-        "ROT13 Mystery": {
+        "ROT13": {
             "text": "Uryyb Jbeyq! Frperg Pbqr.",
             "mode": "Caesar Auto / Brute-Force",
             "key": "",
         },
-        "Atbash Cipher": {
+        "Atbash": {
             "text": "Gsv KfAAov Ozd",
             "mode": "Atbash",
             "key": "",
         },
-        "Base64 Payload": {
+        "Base64": {
             "text": "VGhlIFB1enpsZSBMYXcgVjI=",
             "mode": "Base64 Decode",
             "key": "",
         },
-        "Hex String": {
+        "Hex": {
             "text": "5468652050757a7a6c65204c6177",
             "mode": "Hex Decode",
             "key": "",

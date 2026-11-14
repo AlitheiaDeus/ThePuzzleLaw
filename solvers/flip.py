@@ -19,7 +19,14 @@ META: Dict[str, Any] = {
         "editable": True,
     },
     "presets": {
-        "5x5 Cross": {
+        "3x3": {
+            "board": [
+                [1, 0, 1],
+                [0, 0, 0],
+                [1, 0, 1],
+            ]
+        },
+        "5x5": {
             "board": [
                 [0, 0, 1, 0, 0],
                 [0, 1, 1, 1, 0],
@@ -28,15 +35,11 @@ META: Dict[str, Any] = {
                 [0, 0, 1, 0, 0],
             ]
         },
-        "5x5 All Lit": {
+        "5x5 Full": {
             "board": [[1] * 5 for _ in range(5)],
         },
-        "3x3 Corners": {
-            "board": [
-                [1, 0, 1],
-                [0, 0, 0],
-                [1, 0, 1],
-            ]
+        "9x9": {
+            "board": [[1] * 9 for _ in range(9)],
         },
     },
     "params": [],
