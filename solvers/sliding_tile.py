@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 META: Dict[str, Any] = {
     "slug": "sliding_tile",
     "name": "Sliding Tile (N-Puzzle)",
-    "category": "2D Grid",
+    "category": "Path",
     "renderer": "grid",
     "grid_meta": {
         "mode": "permutation",
@@ -117,7 +117,7 @@ def _to_2d(flat: List[int] | Tuple[int, ...], rows: int, cols: int) -> List[List
     return [list(flat[r * cols : (r + 1) * cols]) for r in range(rows)]
 
 
-def _is_solvable(flat: Tuple[int, ...], rows: int, cols: int) -> bool:
+def _parity_error(flat: Tuple[int, ...], rows: int, cols: int) -> Optional[str]:
     tiles = [x for x in flat if x != 0]
     inversions = 0
     for i in range(len(tiles)):
@@ -126,9 +126,21 @@ def _is_solvable(flat: Tuple[int, ...], rows: int, cols: int) -> bool:
             if ti > tiles[j]:
                 inversions += 1
     if cols % 2 == 1:
-        return inversions % 2 == 0
+        if inversions % 2 != 0:
+            return f"Pre-solve parity failed: {inversions} inversions on odd-width {rows}x{cols} grid (must be even)."
+        return None
     zero_row_from_bottom = rows - (flat.index(0) // cols)
-    return (inversions + zero_row_from_bottom) % 2 == 1
+    total = inversions + zero_row_from_bottom
+    if total % 2 != 1:
+        return (
+            f"Pre-solve parity failed: inversions ({inversions}) + blank row from bottom ({zero_row_from_bottom}) "
+            f"= {total} on even-width {rows}x{cols} grid (must be odd)."
+        )
+    return None
+
+
+def _is_solvable(flat: Tuple[int, ...], rows: int, cols: int) -> bool:
+    return _parity_error(flat, rows, cols) is None
 
 
 def _heuristic(flat: Tuple[int, ...], rows: int, cols: int) -> int:
@@ -527,12 +539,13 @@ def solve(
         }
         return
 
-    if not _is_solvable(start, rows, cols):
+    parity_err = _parity_error(start, rows, cols)
+    if parity_err is not None:
         yield {
             "type": "failed",
             "state": {"rows": rows, "cols": cols, "board": _to_2d(start, rows, cols)},
             "highlights": {},
-            "desc": "Unsolvable permutation (inversion parity mismatch).",
+            "desc": parity_err,
             "stats": {},
         }
         return
@@ -544,11 +557,12 @@ def solve(
             "state": {"rows": rows, "cols": cols, "board": _to_2d(start, rows, cols)},
             "highlights": {},
             "desc": "Puzzle is already solved!",
-            "stats": {"step": 0, "total": 0, "expanded": 0},
+            "stats": {"step": 0, "total": 0, "expanded": 0, "h": 0},
         }
         return
 
     res = None
+    strategy = "A* (Manhattan + Linear Conflict)"
     if rows * cols <= 12:
         res = _astar_solve(start, rows, cols, should_abort)
     else:
@@ -556,6 +570,7 @@ def solve(
         if rows * cols <= 16:
             res = _astar_solve(start, rows, cols, should_abort, max_expanded=15000)
         if res is None and not should_abort():
+            strategy = "Layer reduction + A*"
             res = _layer_reduce_solve(start, rows, cols, should_abort)
 
     if should_abort():
@@ -566,7 +581,7 @@ def solve(
             "type": "failed",
             "state": {"rows": rows, "cols": cols, "board": _to_2d(start, rows, cols)},
             "highlights": {},
-            "desc": "Search exhausted without finding a solution.",
+            "desc": f"Search exhausted ({strategy}) without finding a solution.",
             "stats": {},
         }
         return
@@ -581,6 +596,11 @@ def solve(
             "type": "solution" if step_num == len(trail) else "explore",
             "state": {"rows": rows, "cols": cols, "board": _to_2d(snap_flat, rows, cols)},
             "highlights": {"cells": hl, "color": "primary"},
-            "desc": desc,
-            "stats": {"step": step_num, "total": len(trail), "expanded": expanded},
+            "desc": f"{desc} [{strategy}]" if step_num == len(trail) else desc,
+            "stats": {
+                "step": step_num,
+                "total": len(trail),
+                "expanded": expanded,
+                "h": _heuristic(tuple(snap_flat), rows, cols),
+            },
         }

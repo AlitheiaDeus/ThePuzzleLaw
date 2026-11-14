@@ -20,15 +20,18 @@ FLOW_COLORS = {
 META: Dict[str, Any] = {
     "slug": "flow",
     "name": "Flow Free / Numberlink",
-    "category": "Paths / Topological",
+    "category": "Path",
     "renderer": "grid",
     "description": "Solves Numberlink (multi-pair color routing) and Checkpoint Saturation Flow.",
     "grid_meta": {
         "mode": "palette",
         "min_val": 0,
-        "max_val": 5,
+        "max_val": 6,
         "colors": FLOW_COLORS,
         "editable": True,
+        "resizable": True,
+        "min_dim": 3,
+        "max_dim": 9,
     },
     "presets": {
         "5x5": {
@@ -52,7 +55,15 @@ META: Dict[str, Any] = {
             ],
         },
     },
-    "params": [],
+    "params": [
+        {
+            "key": "mode",
+            "label": "Flow Mode",
+            "type": "select",
+            "default": "numberlink",
+            "options": ["numberlink", "checkpoints"],
+        }
+    ],
 }
 
 
@@ -203,7 +214,7 @@ def solve(
     should_abort: Callable[[], bool],
 ) -> Generator[Dict[str, Any], None, None]:
     board = [list(r) for r in state["board"]]
-    mode = state.get("mode", "numberlink")
+    mode = str(params.get("mode") or state.get("mode") or "numberlink")
 
     yield {
         "type": "start",
@@ -232,7 +243,7 @@ def solve(
                 replay[r][c] = 2
             is_last = idx == len(path)
             yield {
-                "type": "solution" if is_last else "deduce",
+                "type": "solution" if is_last else "explore",
                 "state": {"mode": mode, "board": [list(row) for row in replay]},
                 "highlights": {"path": [[pr, pc] for pr, pc in path[:idx]], "cells": [[r, c]], "color": "primary"},
                 "desc": f"Step {idx}/{len(path)}: Visit ({r + 1}, {c + 1})",
@@ -259,7 +270,7 @@ def solve(
         replay[r][c] = col
         is_last = idx == len(trail)
         yield {
-            "type": "solution" if is_last else "deduce",
+            "type": "solution" if is_last else "explore",
             "state": {"mode": mode, "board": [list(row) for row in replay]},
             "highlights": {"cells": [[r, c]], "color": "primary"},
             "desc": f"Route Color {col} through ({r + 1}, {c + 1})",

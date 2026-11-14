@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 META: Dict[str, Any] = {
     "slug": "liquid_sorter",
     "name": "Liquid Sorter Pro",
-    "category": "Vector Containers",
+    "category": "Path",
     "renderer": "custom",
     "custom_view": "/renderers/custom/liquid_tubes.js",
     "description": "A* pouring solver with variable tube capacities and symmetry-breaking pruning.",
@@ -144,7 +144,7 @@ def solve(
                 poured = [replay[src].pop() for _ in range(amount)]
                 replay[dst].extend(poured)
                 yield {
-                    "type": "solution" if step_idx == len(path) else "deduce",
+                    "type": "solution" if step_idx == len(path) else "explore",
                     "state": {
                         "tubes": [list(t) for t in replay],
                         "capacities": caps,

@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 META: Dict[str, Any] = {
     "slug": "cipher_suite",
     "name": "Cipher & Frequency Suite",
-    "category": "Crypt & Signal",
+    "category": "Cipher",
     "renderer": "text",
     "description": "Caesar/ROT brute-force, Atbash, Reverse, Vigenère, Base64/Hex/Binary, and character frequency analysis.",
     "presets": {
@@ -186,23 +186,65 @@ def solve(
             candidates.append({"label": f"ROT-{s:02d} (score {score})", "text": dec})
         if not output and all_rots:
             output = all_rots[0][2]
+        yield {
+            "type": "explore",
+            "state": {
+                "text": raw_text,
+                "mode": mode,
+                "key": key,
+                "output": output,
+                "candidates": candidates,
+                "frequencies": freqs,
+            },
+            "highlights": {},
+            "desc": f"Evaluated 25 Caesar shifts; top candidate score={all_rots[0][0] if all_rots else 0}",
+            "stats": {"candidates": len(candidates)},
+        }
 
     elif mode == "Caesar Shift":
         shift = int(key) if key.strip().lstrip("-+").isdigit() else 13
         output = _caesar_shift_text(raw_text, shift)
         candidates.append({"label": f"Shift {shift:+d}", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": f"Applied deterministic Caesar shift {shift:+d}",
+            "stats": {"shift": shift},
+        }
 
     elif mode == "Atbash":
         output = _atbash(raw_text)
         candidates.append({"label": "Atbash (A<->Z)", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": "Applied deterministic Atbash alphabet reflection (A<->Z)",
+            "stats": {},
+        }
 
     elif mode == "Reverse":
         output = raw_text[::-1]
         candidates.append({"label": "Reversed String", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": "Applied deterministic character reversal",
+            "stats": {},
+        }
 
     elif mode in ("Vigenere Decrypt", "Vigenere Encrypt"):
         output = _vigenere(raw_text, key or "KEY", decrypt=(mode == "Vigenere Decrypt"))
         candidates.append({"label": f"{mode} (key={key or 'KEY'})", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": f"Applied polyalphabetic Vigenere table using key '{key or 'KEY'}'",
+            "stats": {},
+        }
 
     elif mode == "Base64 Decode":
         padded = raw_text.strip()
@@ -210,25 +252,60 @@ def solve(
         raw_bytes = base64.b64decode(padded, validate=False)
         output = raw_bytes.decode("utf-8", errors="replace")
         candidates.append({"label": "Base64 UTF-8", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": f"Decoded Base64 stream ({len(raw_bytes)} bytes)",
+            "stats": {"bytes": len(raw_bytes)},
+        }
 
     elif mode == "Base64 Encode":
         output = base64.b64encode(raw_text.encode("utf-8")).decode("ascii")
         candidates.append({"label": "Base64 Encoded", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": "Encoded UTF-8 text to Base64",
+            "stats": {},
+        }
 
     elif mode == "Hex Decode":
         cleaned = "".join(raw_text.split())
         output = binascii.unhexlify(cleaned).decode("utf-8", errors="replace")
         candidates.append({"label": "Hex UTF-8", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": f"Decoded {len(cleaned) // 2} hexadecimal byte pairs",
+            "stats": {},
+        }
 
     elif mode == "Hex Encode":
         output = raw_text.encode("utf-8").hex()
         candidates.append({"label": "Hex Encoded", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": "Encoded UTF-8 text to hexadecimal",
+            "stats": {},
+        }
 
     elif mode == "Binary Decode":
         bits = "".join(ch for ch in raw_text if ch in "01")
         chunks = [bits[i : i + 8] for i in range(0, len(bits) - (len(bits) % 8), 8)]
         output = "".join(chr(int(b, 2)) for b in chunks)
         candidates.append({"label": f"8-bit ASCII ({len(chunks)} bytes)", "text": output})
+        yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "key": key, "output": output, "candidates": candidates, "frequencies": freqs},
+            "highlights": {},
+            "desc": f"Decoded {len(chunks)} 8-bit ASCII chunks",
+            "stats": {},
+        }
 
     yield {
         "type": "solution",

@@ -20,15 +20,18 @@ COLOR_NAMES = ["Orange", "Red", "Green", "Yellow", "Blue", "Purple", "Magenta", 
 META: Dict[str, Any] = {
     "slug": "flood",
     "name": "Flood",
-    "category": "Grid / Graph Search",
+    "category": "Path",
     "renderer": "grid",
     "description": "Optimal Flood-It solver using planar component contraction and IDA*.",
     "grid_meta": {
         "mode": "palette",
         "min_val": 0,
-        "max_val": 5,
+        "max_val": 7,
         "colors": COLOR_PALETTE,
         "editable": True,
+        "resizable": True,
+        "min_dim": 2,
+        "max_dim": 9,
     },
     "presets": {
         "6x6": {
@@ -284,7 +287,7 @@ def solve(
         cname = COLOR_NAMES[col] if col < len(COLOR_NAMES) else f"Color {col}"
         is_last = step_idx == len(optimal_seq)
         yield {
-            "type": "solution" if is_last else "deduce",
+            "type": "solution" if is_last else "explore",
             "state": {"num_colors": num_colors, "board": [list(r) for r in cur_grid]},
             "highlights": {"cells": region, "color": "primary"},
             "desc": f"Move {step_idx}/{len(optimal_seq)}: Flood {cname} ({len(region)}/{total} cells)",

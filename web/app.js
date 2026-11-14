@@ -242,6 +242,28 @@ function renderParams(solver, savedParams = null) {
       }
       sel.addEventListener("change", () => {
         state.params[p.key] = sel.value;
+        if (state.editState && typeof state.editState === "object") {
+          state.editState[p.key] = sel.value;
+          if (p.key === "maze_type") {
+            const b = state.editState.board;
+            const rows = Array.isArray(b) ? b.length : 0;
+            const cols = rows > 0 && Array.isArray(b[0]) ? b[0].length : 0;
+            if (sel.value === "Edge Walls" && rows > 0 && cols > 0) {
+              if (!Array.isArray(state.editState.h_walls)) {
+                state.editState.h_walls = Array.from({ length: rows + 1 }, () => Array(cols).fill(0));
+              }
+              if (!Array.isArray(state.editState.v_walls)) {
+                state.editState.v_walls = Array.from({ length: rows }, () => Array(cols + 1).fill(0));
+              }
+            } else if (sel.value === "Tile Walls") {
+              delete state.editState.h_walls;
+              delete state.editState.v_walls;
+            }
+            if (!isPlaybackMode()) renderStage();
+          } else if (p.key === "num_colors" && !isPlaybackMode()) {
+            renderStage();
+          }
+        }
         saveDraft();
       });
       wrap.appendChild(sel);

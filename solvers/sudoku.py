@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 META: Dict[str, Any] = {
     "slug": "sudoku",
     "name": "Sudoku",
-    "category": "Constraint Grids",
+    "category": "State",
     "renderer": "grid",
     "description": "Solves 4x4, 6x6, or 9x9 Sudoku grids using Naked/Hidden Singles followed by MRV backtracking.",
     "grid_meta": {
@@ -16,6 +16,12 @@ META: Dict[str, Any] = {
         "max_val": 9,
         "empty_val": 0,
         "editable": True,
+        "size_layouts": [
+            {"label": "4x4 (2x2)", "dim": 4, "box_w": 2, "box_h": 2},
+            {"label": "6x6 (3x2)", "dim": 6, "box_w": 3, "box_h": 2},
+            {"label": "6x6 (2x3)", "dim": 6, "box_w": 2, "box_h": 3},
+            {"label": "9x9 (3x3)", "dim": 9, "box_w": 3, "box_h": 3},
+        ],
     },
     "presets": {
         "9x9": {
@@ -175,7 +181,7 @@ def solve(
                         "type": "deduce",
                         "state": snap(board),
                         "highlights": {"cells": [[r, c]], "color": "primary"},
-                        "desc": f"Naked Single: ({r + 1}, {c + 1}) = {num}",
+                        "desc": f"Naked Single at ({r + 1},{c + 1}): only candidate {{{num}}}",
                         "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
                     }
 
@@ -195,17 +201,17 @@ def solve(
                             "type": "deduce",
                             "state": snap(board),
                             "highlights": {"cells": [[r, c]], "color": "secondary"},
-                            "desc": f"Hidden Single: ({r + 1}, {c + 1}) = {num}",
+                            "desc": f"Hidden Single at ({r + 1},{c + 1}): only place for {num} in unit",
                             "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
                         }
 
     # Phase 2: MRV Backtracking
-    steps_to_confirm: List[Tuple[List[List[int]], int, int, int]] = []
+    steps_to_confirm: List[Tuple[List[List[int]], int, int, int, int]] = []
 
     def is_safe(num: int, r: int, c: int) -> bool:
         return all(board[pr][pc] != num for pr, pc in peers_map[(r, c)])
 
-    def find_mrv() -> Optional[Tuple[int, int]]:
+    def find_mrv() -> Optional[Tuple[int, int, int]]:
         best = None
         best_count = dim + 1
         for r in range(dim):
@@ -214,7 +220,7 @@ def solve(
                     opts = sum(1 for n in range(1, dim + 1) if is_safe(n, r, c))
                     if opts < best_count:
                         best_count = opts
-                        best = (r, c)
+                        best = (r, c, opts)
                         if opts <= 1:
                             return best
         return best
@@ -226,13 +232,15 @@ def solve(
         cell = find_mrv()
         if cell is None:
             return True
-        r, c = cell
+        r, c, opts = cell
+        if opts == 0:
+            return False
         for num in range(1, dim + 1):
             if is_safe(num, r, c):
                 backtrack_count += 1
                 board[r][c] = num
                 if backtrack():
-                    steps_to_confirm.append((_clone_board(board), r, c, num))
+                    steps_to_confirm.append((_clone_board(board), r, c, num, opts))
                     return True
                 board[r][c] = 0
         return False
@@ -244,16 +252,17 @@ def solve(
                     "type": "failed",
                     "state": snap(board),
                     "highlights": {},
-                    "desc": "No valid Sudoku solution exists.",
+                    "desc": "Mid-solve contradiction: search exhausted all MRV branches with no valid solution.",
                     "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
                 }
             return
-        for b_snap, r, c, num in reversed(steps_to_confirm):
+        for idx, (b_snap, r, c, num, opts) in enumerate(reversed(steps_to_confirm)):
+            prefix = "Deduction stalled -> " if idx == 0 else ""
             yield {
                 "type": "explore",
                 "state": snap(b_snap),
                 "highlights": {"cells": [[r, c]], "color": "secondary"},
-                "desc": f"MRV Branch Confirmed: ({r + 1}, {c + 1}) = {num}",
+                "desc": f"{prefix}MRV branch ({r + 1},{c + 1}) = {num} ({opts} candidates)",
                 "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
             }
 

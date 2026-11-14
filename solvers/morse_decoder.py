@@ -37,7 +37,7 @@ KNOWN_DASHES = {"-", "_", "—", "–", "―", "−", "1", "=", "~"}
 META: Dict[str, Any] = {
     "slug": "morse_decoder",
     "name": "Morse & Smooshed Signal Decoder",
-    "category": "Crypt & Signal",
+    "category": "Cipher",
     "renderer": "text",
     "description": "Decodes spaced Morse, phonetic dit/dah, binary 0/1, and unspaced/smooshed Morse streams via Trie beam search.",
     "presets": {
@@ -274,6 +274,13 @@ def solve(
             {"label": "Smooshed (Unspaced)", "text": smooshed},
         ]
         yield {
+            "type": "deduce",
+            "state": {"text": raw_text, "mode": mode, "language": lang, "output": spaced, "candidates": cands},
+            "highlights": {},
+            "desc": f"Mapped {len(words)} words deterministically via ITU table",
+            "stats": {"symbols": len(smooshed)},
+        }
+        yield {
             "type": "solution",
             "state": {"text": raw_text, "mode": mode, "language": lang, "output": spaced, "candidates": cands},
             "highlights": {},
@@ -291,6 +298,19 @@ def solve(
             letters = [rev_itu.get(tok, "?") for tok in wc.split() if tok]
             decoded_words.append("".join(letters))
         out = " ".join(decoded_words)
+        yield {
+            "type": "deduce",
+            "state": {
+                "text": raw_text,
+                "mode": mode,
+                "language": lang,
+                "output": out,
+                "candidates": [{"label": "Spaced ITU", "text": out}],
+            },
+            "highlights": {},
+            "desc": f"Matched {len(decoded_words)} spaced ITU code groups",
+            "stats": {"words": len(decoded_words)},
+        }
         yield {
             "type": "solution",
             "state": {
@@ -328,6 +348,19 @@ def solve(
             if not best_output:
                 best_output = txt
             all_cands.append({"label": f"{vname} (score {score:.2f})", "text": txt})
+        yield {
+            "type": "explore",
+            "state": {
+                "text": raw_text,
+                "mode": mode,
+                "language": lang,
+                "output": best_output,
+                "candidates": list(all_cands),
+            },
+            "highlights": {},
+            "desc": f"Beam search ({vname}): found {len(hits)} word-trie segmentations",
+            "stats": {"dict_words": dict_size, "candidates": len(all_cands)},
+        }
 
     if not all_cands:
         yield {

@@ -10,12 +10,15 @@ from typing import Any, Callable, Dict, Generator, List, Set, Tuple
 META: Dict[str, Any] = {
     "slug": "block_escape",
     "name": "Block Escape (Portals & Chains)",
-    "category": "2D Grid",
+    "category": "Path",
     "renderer": "grid",
     "description": "BFS solver for sliding block puzzles with multi-tile pieces, ice ('), portals, and lockstep chains.",
     "grid_meta": {
         "mode": "token",
-        "editable": False,
+        "editable": True,
+        "resizable": True,
+        "min_dim": 3,
+        "max_dim": 12,
     },
     "presets": {
         "Portal Chains": {
@@ -96,8 +99,11 @@ def _get_components(cells: Set[Tuple[int, int]]) -> List[Set[Tuple[int, int]]]:
 def _parse_level(terrain_str: str, blocks_str: str, chains_config: List[Any]):
     terrain_lines = [l.split() for l in terrain_str.strip().splitlines() if l.strip()]
     blocks_lines = [l.split() for l in blocks_str.strip().splitlines() if l.strip()]
-    max_y = len(terrain_lines)
-    max_x = len(terrain_lines[0]) if max_y > 0 else 0
+    max_y = max(len(terrain_lines), len(blocks_lines))
+    max_x = max(
+        max((len(l) for l in terrain_lines), default=0),
+        max((len(l) for l in blocks_lines), default=0),
+    )
 
     static_grid: Set[Tuple[int, int]] = set()
     raw_portals: Dict[str, Set[Tuple[int, int]]] = {}
@@ -322,7 +328,7 @@ def solve(
             for idx, (st_snap, desc) in enumerate(path, 1):
                 t_cells = [[y - 1, x - 1] for bid, cells in st_snap if bid == t_id for x, y in cells]
                 yield {
-                    "type": "solution" if idx == len(path) else "deduce",
+                    "type": "solution" if idx == len(path) else "explore",
                     "state": make_state(st_snap),
                     "highlights": {"cells": t_cells, "color": "primary"},
                     "desc": f"Move {idx}/{len(path)}: {desc}",

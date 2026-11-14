@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional
 META: Dict[str, Any] = {
     "slug": "packing_grids",
     "name": "Packing Grids (Nonogram)",
-    "category": "Exact Cover & Packing",
+    "category": "State",
     "renderer": "grid",
     "description": "Solves Nonogram / Picross grids via line-pattern intersection and backtracking.",
     "grid_meta": {
@@ -16,7 +16,10 @@ META: Dict[str, Any] = {
         "max_val": 1,
         "labels": {"0": "", "1": "■"},
         "colors": {"0": "#232629", "1": "#00F5D4"},
-        "editable": False,
+        "editable": True,
+        "resizable": True,
+        "min_dim": 2,
+        "max_dim": 10,
     },
     "presets": {
         "5x5": {
@@ -147,13 +150,25 @@ def solve(
         "stats": {"rows": rows, "cols": cols},
     }
 
+    row_sum = sum(sum(r) for r in row_clues)
+    col_sum = sum(sum(c) for c in col_clues)
+    if row_sum != col_sum:
+        yield {
+            "type": "failed",
+            "state": snap(grid),
+            "highlights": {},
+            "desc": f"Pre-solve parity check failed: row clue sum ({row_sum}) != col clue sum ({col_sum}).",
+            "stats": {},
+        }
+        return
+
     steps: List[Tuple[int, int, int, str]] = []
     if not _propagate(grid, row_clues, col_clues, steps=steps):
         yield {
             "type": "failed",
             "state": snap(grid),
             "highlights": {},
-            "desc": "Contradiction in Nonogram clues.",
+            "desc": "Pre-solve contradiction: line clues cannot be satisfied on this grid.",
             "stats": {},
         }
         return
@@ -189,6 +204,13 @@ def solve(
 
     solved = grid
     if any(0 in r for r in grid):
+        yield {
+            "type": "explore",
+            "state": snap(grid),
+            "highlights": {},
+            "desc": "Line deduction stalled -> entering backtracking search",
+            "stats": {},
+        }
         res = backtrack(grid)
         if res is None:
             if not should_abort():
@@ -196,7 +218,7 @@ def solve(
                     "type": "failed",
                     "state": snap(grid),
                     "highlights": {},
-                    "desc": "No valid Nonogram solution exists.",
+                    "desc": "Mid-solve contradiction: search exhausted all branches.",
                     "stats": {},
                 }
             return

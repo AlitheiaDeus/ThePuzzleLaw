@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 META: Dict[str, Any] = {
     "slug": "urjo",
     "name": "Urjo",
-    "category": "Grid / Binary",
+    "category": "State",
     "renderer": "grid",
     "description": "Dual-color grid with Moore neighborhood clues (0-8), row/col balance, and adjacent line disparity.",
     "grid_meta": {
@@ -17,6 +17,10 @@ META: Dict[str, Any] = {
         "labels": {"0": "", "1": "R", "2": "B"},
         "colors": {"0": "#232629", "1": "#B3472C", "2": "#01CA6B"},
         "editable": True,
+        "resizable": True,
+        "dim_step": 2,
+        "min_dim": 4,
+        "max_dim": 8,
     },
     "presets": {
         "6x6": {
@@ -56,14 +60,14 @@ META: Dict[str, Any] = {
 }
 
 
-def _neighbors(r: int, c: int, size: int) -> List[Tuple[int, int]]:
+def _neighbors(r: int, c: int, rows: int, cols: int) -> List[Tuple[int, int]]:
     out = []
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
             if dr == 0 and dc == 0:
                 continue
             nr, nc = r + dr, c + dc
-            if 0 <= nr < size and 0 <= nc < size:
+            if 0 <= nr < rows and 0 <= nc < cols:
                 out.append((nr, nc))
     return out
 
@@ -71,35 +75,37 @@ def _neighbors(r: int, c: int, size: int) -> List[Tuple[int, int]]:
 def _propagate(
     b: List[List[int]],
     clues: List[List[Optional[int]]],
-    size: int,
+    rows: int,
+    cols: int,
     collector: Optional[List[Tuple[int, int, int, str]]] = None,
 ) -> bool:
-    half = size // 2
+    half_row = cols // 2
+    half_col = rows // 2
     changed = True
     while changed:
         changed = False
         # 1. Line balance
-        for r in range(size):
+        for r in range(rows):
             cr, cb = b[r].count(1), b[r].count(2)
-            if cr > half or cb > half:
+            if cr > half_row or cb > half_row:
                 return False
-            fill = 2 if cr == half and cb < half else (1 if cb == half and cr < half else 0)
+            fill = 2 if cr == half_row and cb < half_row else (1 if cb == half_row and cr < half_row else 0)
             if fill:
-                for c in range(size):
+                for c in range(cols):
                     if b[r][c] == 0:
                         b[r][c] = fill
                         if collector is not None:
                             collector.append((r, c, fill, f"Row {r + 1} Balance"))
                         changed = True
 
-        for c in range(size):
-            col = [b[r][c] for r in range(size)]
+        for c in range(cols):
+            col = [b[r][c] for r in range(rows)]
             cr, cb = col.count(1), col.count(2)
-            if cr > half or cb > half:
+            if cr > half_col or cb > half_col:
                 return False
-            fill = 2 if cr == half and cb < half else (1 if cb == half and cr < half else 0)
+            fill = 2 if cr == half_col and cb < half_col else (1 if cb == half_col and cr < half_col else 0)
             if fill:
-                for r in range(size):
+                for r in range(rows):
                     if b[r][c] == 0:
                         b[r][c] = fill
                         if collector is not None:
@@ -107,56 +113,56 @@ def _propagate(
                         changed = True
 
         # 2. Adjacent line disparity
-        for r in range(size - 1):
+        for r in range(rows - 1):
             r1, r2 = b[r], b[r + 1]
             if 0 not in r1 and 0 not in r2 and r1 == r2:
                 return False
-            e1 = [c for c in range(size) if r1[c] == 0]
-            e2 = [c for c in range(size) if r2[c] == 0]
+            e1 = [c for c in range(cols) if r1[c] == 0]
+            e2 = [c for c in range(cols) if r2[c] == 0]
             if len(e1) == 1 and not e2:
                 c = e1[0]
-                if all(r1[i] == r2[i] for i in range(size) if i != c):
+                if all(r1[i] == r2[i] for i in range(cols) if i != c):
                     b[r][c] = 3 - r2[c]
                     if collector is not None:
                         collector.append((r, c, b[r][c], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
                     changed = True
             elif len(e2) == 1 and not e1:
                 c = e2[0]
-                if all(r1[i] == r2[i] for i in range(size) if i != c):
+                if all(r1[i] == r2[i] for i in range(cols) if i != c):
                     b[r + 1][c] = 3 - r1[c]
                     if collector is not None:
                         collector.append((r + 1, c, b[r + 1][c], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
                     changed = True
 
-        for c in range(size - 1):
-            c1 = [b[r][c] for r in range(size)]
-            c2 = [b[r][c + 1] for r in range(size)]
+        for c in range(cols - 1):
+            c1 = [b[r][c] for r in range(rows)]
+            c2 = [b[r][c + 1] for r in range(rows)]
             if 0 not in c1 and 0 not in c2 and c1 == c2:
                 return False
-            e1 = [r for r in range(size) if c1[r] == 0]
-            e2 = [r for r in range(size) if c2[r] == 0]
+            e1 = [r for r in range(rows) if c1[r] == 0]
+            e2 = [r for r in range(rows) if c2[r] == 0]
             if len(e1) == 1 and not e2:
                 r = e1[0]
-                if all(c1[i] == c2[i] for i in range(size) if i != r):
+                if all(c1[i] == c2[i] for i in range(rows) if i != r):
                     b[r][c] = 3 - c2[r]
                     if collector is not None:
                         collector.append((r, c, b[r][c], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
                     changed = True
             elif len(e2) == 1 and not e1:
                 r = e2[0]
-                if all(c1[i] == c2[i] for i in range(size) if i != r):
+                if all(c1[i] == c2[i] for i in range(rows) if i != r):
                     b[r][c + 1] = 3 - c1[r]
                     if collector is not None:
                         collector.append((r, c + 1, b[r][c + 1], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
                     changed = True
 
         # 3. Moore neighborhood clues
-        for r in range(size):
-            for c in range(size):
+        for r in range(rows):
+            for c in range(cols):
                 k = clues[r][c]
                 if k is None:
                     continue
-                nbrs = _neighbors(r, c, size)
+                nbrs = _neighbors(r, c, rows, cols)
                 col = b[r][c]
                 if col == 0:
                     r_same = sum(1 for nr, nc in nbrs if b[nr][nc] == 1)
@@ -199,24 +205,25 @@ def _propagate(
     return True
 
 
-def _is_solved(b: List[List[int]], clues: List[List[Optional[int]]], size: int) -> bool:
-    half = size // 2
-    for r in range(size):
-        if 0 in b[r] or b[r].count(1) != half:
+def _is_solved(b: List[List[int]], clues: List[List[Optional[int]]], rows: int, cols: int) -> bool:
+    half_row = cols // 2
+    half_col = rows // 2
+    for r in range(rows):
+        if 0 in b[r] or b[r].count(1) != half_row:
             return False
-        if r < size - 1 and b[r] == b[r + 1]:
+        if r < rows - 1 and b[r] == b[r + 1]:
             return False
-    for c in range(size):
-        col = [b[r][c] for r in range(size)]
-        if col.count(1) != half:
+    for c in range(cols):
+        col = [b[r][c] for r in range(rows)]
+        if col.count(1) != half_col:
             return False
-        if c < size - 1 and col == [b[r][c + 1] for r in range(size)]:
+        if c < cols - 1 and col == [b[r][c + 1] for r in range(rows)]:
             return False
-    for r in range(size):
-        for c in range(size):
+    for r in range(rows):
+        for c in range(cols):
             k = clues[r][c]
             if k is not None:
-                same = sum(1 for nr, nc in _neighbors(r, c, size) if b[nr][nc] == b[r][c])
+                same = sum(1 for nr, nc in _neighbors(r, c, rows, cols) if b[nr][nc] == b[r][c])
                 if same != k:
                     return False
     return True
@@ -228,24 +235,38 @@ def solve(
     should_abort: Callable[[], bool],
 ) -> Generator[Dict[str, Any], None, None]:
     board = [list(r) for r in state["board"]]
-    size = len(board)
-    clues = [list(r) for r in state.get("clues", [[None] * size for _ in range(size)])]
+    rows, cols = len(board), len(board[0])
+    raw_clues = state.get("clues") or []
+    clues: List[List[Optional[int]]] = [
+        [raw_clues[r][c] if r < len(raw_clues) and c < len(raw_clues[r]) else None for c in range(cols)]
+        for r in range(rows)
+    ]
 
     yield {
         "type": "start",
         "state": {"board": [list(r) for r in board], "clues": clues},
         "highlights": {},
-        "desc": f"Initial Urjo {size}x{size} setup",
-        "stats": {"size": size},
+        "desc": f"Initial Urjo {rows}x{cols} setup",
+        "stats": {"rows": rows, "cols": cols},
     }
 
-    logic_steps: List[Tuple[int, int, int, str]] = []
-    if not _propagate(board, clues, size, collector=logic_steps):
+    if rows < 2 or cols < 2 or rows % 2 != 0 or cols % 2 != 0:
         yield {
             "type": "failed",
             "state": {"board": board, "clues": clues},
             "highlights": {},
-            "desc": "Contradiction in initial Urjo clues.",
+            "desc": f"Pre-solve check failed: grid dimensions {rows}x{cols} must both be even.",
+            "stats": {},
+        }
+        return
+
+    logic_steps: List[Tuple[int, int, int, str]] = []
+    if not _propagate(board, clues, rows, cols, collector=logic_steps):
+        yield {
+            "type": "failed",
+            "state": {"board": board, "clues": clues},
+            "highlights": {},
+            "desc": "Pre-solve contradiction: initial clues violate adjacency or row/col N/2 parity.",
             "stats": {},
         }
         return
@@ -270,21 +291,21 @@ def solve(
             return None
         best = None
         best_score = -1
-        for r in range(size):
-            for c in range(size):
+        for r in range(rows):
+            for c in range(cols):
                 if cur[r][c] == 0:
-                    adj = sum(1 for nr, nc in _neighbors(r, c, size) if clues[nr][nc] is not None)
+                    adj = sum(1 for nr, nc in _neighbors(r, c, rows, cols) if clues[nr][nc] is not None)
                     if adj > best_score:
                         best_score = adj
                         best = (r, c)
         if best is None:
-            return cur if _is_solved(cur, clues, size) else None
+            return cur if _is_solved(cur, clues, rows, cols) else None
 
         er, ec = best
         for cand in (1, 2):
             nxt = [list(row) for row in cur]
             nxt[er][ec] = cand
-            if _propagate(nxt, clues, size):
+            if _propagate(nxt, clues, rows, cols):
                 res = backtrack(nxt)
                 if res is not None:
                     branch_snapshots.append(([list(row) for row in nxt], er, ec, cand))
@@ -304,12 +325,13 @@ def solve(
                     "stats": {},
                 }
             return
-        for snap_b, r, c, val in reversed(branch_snapshots):
+        for idx, (snap_b, r, c, val) in enumerate(reversed(branch_snapshots)):
+            prefix = "Deduction stalled -> " if idx == 0 else ""
             yield {
                 "type": "explore",
                 "state": {"board": snap_b, "clues": clues},
                 "highlights": {"cells": [[r, c]], "color": "secondary"},
-                "desc": f"Branch ({r + 1}, {c + 1}) = {'Red' if val == 1 else 'Blue'}",
+                "desc": f"{prefix}Branch ({r + 1}, {c + 1}) = {'Red' if val == 1 else 'Blue'}",
                 "stats": {},
             }
         solved_board = res

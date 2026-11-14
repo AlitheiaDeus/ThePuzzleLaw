@@ -72,3 +72,129 @@ def test_sliding_tile_rectangular_and_unsolvable():
     res_bad = run_solver_sync(entry, bad_state, {})
     assert res_bad["ok"] is True
     assert res_bad["steps"][-1]["type"] == "failed"
+    assert "parity" in res_bad["steps"][-1]["desc"].lower()
+
+
+def test_unsolvable_diagnostics():
+    # Flip (2x2? No, 2x3 or 4x4 has unsolvable states; 4x4 single corner lit is unsolvable over GF(2)?)
+    # Actually 5x5 with only (0,0) lit? Let's test 4x4 with a single lit cell or known unsolvable 5x5:
+    flip_entry = SOLVERS["flip"]
+    res_flip = run_solver_sync(flip_entry, {"board": [[1, 0, 0, 0, 0], [0]*5, [0]*5, [0]*5, [0]*5]}, {})
+    assert res_flip["ok"] is True
+    assert res_flip["steps"][0]["type"] == "start"
+    assert res_flip["steps"][-1]["type"] == "failed"
+    assert "gf(2)" in res_flip["steps"][-1]["desc"].lower()
+
+    # Packing grids clue sum mismatch
+    pack_entry = SOLVERS["packing_grids"]
+    res_pack = run_solver_sync(
+        pack_entry,
+        {"row_clues": [[1], [1]], "col_clues": [[1], [0]], "board": [[0, 0], [0, 0]]},
+        {},
+    )
+    assert res_pack["ok"] is True
+    assert res_pack["steps"][-1]["type"] == "failed"
+    assert "parity" in res_pack["steps"][-1]["desc"].lower()
+
+    # Loop games impossible clue
+    loop_entry = SOLVERS["loop_games"]
+    res_loop = run_solver_sync(
+        loop_entry,
+        {"rows": 2, "cols": 2, "cell_clues": [[3, 0], [0, 0]], "h_edges": [[0]*2]*3, "v_edges": [[0]*3]*2},
+        {},
+    )
+    assert res_loop["ok"] is True
+    assert res_loop["steps"][-1]["type"] == "failed"
+
+    # Palisade invalid region divisibility check
+    pal_entry = SOLVERS["palisade"]
+    res_pal = run_solver_sync(
+        pal_entry,
+        {"rows": 4, "cols": 4, "region_size": 5, "cell_clues": [[None] * 4 for _ in range(4)]},
+        {},
+    )
+    assert res_pal["ok"] is True
+    assert res_pal["steps"][-1]["type"] == "failed"
+    assert "divisibility" in res_pal["steps"][-1]["desc"].lower()
+
+
+def test_chess_attack_tactics_and_logs():
+    entry = SOLVERS["chess_attack"]
+    preset = copy.deepcopy(entry.meta["presets"]["6x6 Rook+King"])
+    res = run_solver_sync(entry, preset, {"piece_type": "Rook + King", "stars_per_unit": "1"})
+    assert res["ok"] is True
+    assert res["steps"][-1]["type"] == "solution"
+    deduce_steps = [s for s in res["steps"] if s["type"] == "deduce"]
+    assert len(deduce_steps) >= 5
+
+
+def test_maze_geometries_and_tiebreakers():
+    entry = SOLVERS["maze_navigator"]
+    wt = copy.deepcopy(entry.meta["presets"]["Weighted Terrain 7x7"])
+
+    res_manhattan = run_solver_sync(
+        entry,
+        copy.deepcopy(wt),
+        {"algorithm": "Dijkstra", "maze_type": "Tile Walls", "movement": "Manhattan (4-Way)", "tie_breaker": "None"},
+    )
+    res_diag = run_solver_sync(
+        entry,
+        copy.deepcopy(wt),
+        {"algorithm": "Dijkstra", "maze_type": "Tile Walls", "movement": "Diagonal Euclidean (8-Way)", "tie_breaker": "None"},
+    )
+    res_arc = run_solver_sync(
+        entry,
+        copy.deepcopy(wt),
+        {"algorithm": "Dijkstra", "maze_type": "Tile Walls", "movement": "Quarter-Arc Corners", "tie_breaker": "None"},
+    )
+    assert res_manhattan["steps"][-1]["type"] == "solution"
+    assert res_diag["steps"][-1]["type"] == "solution"
+    assert res_arc["steps"][-1]["type"] == "solution"
+    assert res_diag["steps"][-1]["stats"]["cost"] < res_manhattan["steps"][-1]["stats"]["cost"]
+    assert res_arc["steps"][-1]["stats"]["cost"] < res_manhattan["steps"][-1]["stats"]["cost"]
+    assert any(op["op"] == "A" for op in res_arc["steps"][-1]["highlights"]["path_svg"])
+
+    # Manhattan default with Quarter-Arc tie-breaker preserves Manhattan cost and adds SVG arcs
+    base6 = copy.deepcopy(entry.meta["presets"]["6x6"])
+    res_tb_arc = run_solver_sync(
+        entry,
+        base6,
+        {"algorithm": "A*", "maze_type": "Tile Walls", "movement": "Manhattan (4-Way)", "tie_breaker": "Quarter-Arc"},
+    )
+    assert res_tb_arc["steps"][-1]["type"] == "solution"
+    assert res_tb_arc["steps"][-1]["stats"]["cost"] == 10
+    assert any(op["op"] == "A" for op in res_tb_arc["steps"][-1]["highlights"]["path_svg"])
+
+
+def test_rectangular_resizing_and_unified_logs():
+    # Rectangular even Unruly 4x6
+    res_unruly = run_solver_sync(
+        SOLVERS["unruly"],
+        {"unique_rows_cols": True, "board": [[0] * 6 for _ in range(4)]},
+        {"unique_rows_cols": True},
+    )
+    assert res_unruly["steps"][-1]["type"] == "solution"
+
+    # Rectangular even Urjo 4x6
+    res_urjo = run_solver_sync(
+        SOLVERS["urjo"],
+        {
+            "board": [
+                [1, 0, 0, 0, 0, 2],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 1],
+            ],
+            "clues": [[None] * 6 for _ in range(4)],
+        },
+        {},
+    )
+    assert res_urjo["steps"][-1]["type"] == "solution"
+
+    # Search solvers emit explore steps (never deduce for heuristic/BFS steps)
+    for slug in ("block_escape", "flood", "liquid_sorter", "maze_navigator"):
+        e = SOLVERS[slug]
+        pst = copy.deepcopy(next(iter(e.meta["presets"].values())))
+        res = run_solver_sync(e, pst, {p["key"]: p.get("default") for p in e.meta.get("params", [])})
+        assert all(s["type"] != "deduce" for s in res["steps"]), f"{slug} emitted deduce during pure search"
+        assert any(s["type"] == "explore" for s in res["steps"]), f"{slug} missing explore step"

@@ -17,6 +17,7 @@ def test_all_solvers_discovered_and_valid():
         "maze_navigator",
         "morse_decoder",
         "packing_grids",
+        "palisade",
         "sliding_tile",
         "sudoku",
         "unruly",
@@ -26,9 +27,11 @@ def test_all_solvers_discovered_and_valid():
 
     meta_list = list_solver_metadata()
     assert len(meta_list) == len(solvers)
+    categories = {m["category"] for m in meta_list}
+    assert categories == {"Cipher", "Path", "State"}
     for meta in meta_list:
         assert meta["slug"]
         assert meta["name"]
-        assert meta["category"]
+        assert meta["category"] in {"Cipher", "Path", "State"}
         assert meta["renderer"] in ("grid", "text", "custom")
         assert isinstance(meta["presets"], dict) and len(meta["presets"]) >= 1

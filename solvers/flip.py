@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 META: Dict[str, Any] = {
     "slug": "flip",
     "name": "Flip (Lights Out)",
-    "category": "Matrix Toggle",
+    "category": "State",
     "renderer": "grid",
     "description": "Exact Gaussian elimination over GF(2) for Lights Out toggle matrices.",
     "grid_meta": {
@@ -17,6 +17,9 @@ META: Dict[str, Any] = {
         "labels": {"0": "", "1": "●"},
         "colors": {"0": "#25292E", "1": "#00F5D4"},
         "editable": True,
+        "resizable": True,
+        "min_dim": 2,
+        "max_dim": 10,
     },
     "presets": {
         "3x3": {
@@ -110,26 +113,29 @@ def solve(
     grid = [list(row) for row in state["board"]]
     rows, cols = len(grid), len(grid[0])
 
+    yield {
+        "type": "start",
+        "state": {"board": [list(r) for r in grid]},
+        "highlights": {},
+        "desc": f"Loaded {rows}x{cols} Lights Out board -> solving over GF(2)",
+        "stats": {"rows": rows, "cols": cols},
+    }
+
+    if should_abort():
+        return
+
     sol = _solve_gf2(rows, cols, grid)
     if sol is None:
         yield {
             "type": "failed",
             "state": {"board": [list(r) for r in grid]},
             "highlights": {},
-            "desc": "Configuration is mathematically unsolvable over GF(2).",
+            "desc": "Pre-solve GF(2) check failed: linear system is inconsistent (0 = 1 row in RREF).",
             "stats": {},
         }
         return
 
     presses: List[Tuple[int, int]] = [divmod(idx, cols) for idx, v in enumerate(sol) if v == 1]
-
-    yield {
-        "type": "start",
-        "state": {"board": [list(r) for r in grid]},
-        "highlights": {"cells": [[r, c] for r, c in presses], "color": "secondary"},
-        "desc": f"GF(2) solution requires {len(presses)} button press(es)",
-        "stats": {"total_presses": len(presses)},
-    }
 
     if not presses:
         yield {
