@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="chalk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Puzzle Law</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="hub-shell">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">The Puzzle Law</div>
+      </div>
+      <div class="sidebar-search">
+        <input id="solver-filter" type="text" placeholder="Filter..." />
+      </div>
+      <nav id="solver-list" class="solver-list"></nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <!-- Top Tool Strip -->
+      <header class="top-bar">
+        <div class="solver-header">
+          <h1 id="solver-title">Select a Puzzle</h1>
+        </div>
+        <div class="toolbar-controls">
+          <label class="ctrl-group">
+            <span>Preset</span>
+            <select id="preset-select"></select>
+          </label>
+          <div id="dynamic-params" class="dynamic-params"></div>
+          <button id="btn-reset" class="btn">Reset</button>
+          <button id="btn-json" class="btn">JSON</button>
+          <button id="btn-theme" class="btn">Theme: Chalk</button>
+        </div>
+      </header>
+
+      <!-- Swappable Stage -->
+      <main class="stage-wrap">
+        <div id="mode-pill" class="mode-tag edit">EDIT</div>
+        <div id="stage" class="stage"></div>
+      </main>
+
+      <!-- Transport & Timeline Bar -->
+      <footer class="transport-bar">
+        <div class="transport-buttons">
+          <button id="btn-first" class="btn-icon" title="First Step">|&lt;</button>
+          <button id="btn-prev" class="btn-icon" title="Previous Step">&lt;</button>
+          <button id="btn-play" class="btn-icon" title="Play / Pause">Play</button>
+          <button id="btn-next" class="btn-icon" title="Next Step">&gt;</button>
+          <button id="btn-last" class="btn-icon" title="Last Step">&gt;|</button>
+        </div>
+
+        <div class="scrubber-wrap">
+          <input id="scrub-slider" type="range" min="0" max="0" value="0" disabled />
+          <span id="step-counter" class="step-counter">0 / 0</span>
+        </div>
+
+        <label class="speed-wrap" title="Playback Speed">
+          <span>Speed</span>
+          <input id="speed-slider" type="range" min="30" max="800" value="220" />
+        </label>
+
+        <div class="solve-actions">
+          <button id="btn-solve" class="btn btn-solve">Solve</button>
+          <button id="btn-abort" class="btn btn-danger hidden">Abort</button>
+          <button id="btn-logs" class="btn">Logs</button>
+        </div>
+      </footer>
+
+      <!-- Collapsible Log & Stats Drawer -->
+      <section id="log-drawer" class="log-drawer collapsed">
+        <div class="log-header">
+          <span id="step-desc-live">Ready.</span>
+          <span id="step-stats-live" class="stats-pills"></span>
+        </div>
+        <div id="log-entries" class="log-entries"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- JSON State Modal -->
+  <div id="json-modal" class="modal hidden">
+    <div class="modal-card">
+      <h3>State JSON</h3>
+      <textarea id="json-textarea" rows="12" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button id="btn-json-apply" class="btn btn-solve">Apply</button>
+        <button id="btn-json-close" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

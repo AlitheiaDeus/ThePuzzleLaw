@@ -1,0 +1,449 @@
+import { renderGrid } from "/renderers/grid.js";
+import { renderText } from "/renderers/text.js";
+
+const state = {
+  solvers: [],
+  activeSolver: null,
+  activePresetName: "",
+  editState: null,
+  params: {},
+  steps: [],
+  stepIdx: 0,
+  playing: false,
+  playTimer: null,
+  activeJobId: null,
+  abortController: null,
+  customRendererCache: new Map(),
+};
+
+const els = {
+  solverFilter: document.getElementById("solver-filter"),
+  solverList: document.getElementById("solver-list"),
+  solverTitle: document.getElementById("solver-title"),
+  presetSelect: document.getElementById("preset-select"),
+  dynamicParams: document.getElementById("dynamic-params"),
+  stage: document.getElementById("stage"),
+  modePill: document.getElementById("mode-pill"),
+  scrubSlider: document.getElementById("scrub-slider"),
+  stepCounter: document.getElementById("step-counter"),
+  speedSlider: document.getElementById("speed-slider"),
+  btnFirst: document.getElementById("btn-first"),
+  btnPrev: document.getElementById("btn-prev"),
+  btnPlay: document.getElementById("btn-play"),
+  btnNext: document.getElementById("btn-next"),
+  btnLast: document.getElementById("btn-last"),
+  btnSolve: document.getElementById("btn-solve"),
+  btnAbort: document.getElementById("btn-abort"),
+  btnReset: document.getElementById("btn-reset"),
+  btnTheme: document.getElementById("btn-theme"),
+  btnLogs: document.getElementById("btn-logs"),
+  logDrawer: document.getElementById("log-drawer"),
+  logEntries: document.getElementById("log-entries"),
+  stepDescLive: document.getElementById("step-desc-live"),
+  stepStatsLive: document.getElementById("step-stats-live"),
+  btnJson: document.getElementById("btn-json"),
+  jsonModal: document.getElementById("json-modal"),
+  jsonTextarea: document.getElementById("json-textarea"),
+  btnJsonApply: document.getElementById("btn-json-apply"),
+  btnJsonClose: document.getElementById("btn-json-close"),
+};
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function isPlaybackMode() {
+  return state.steps.length > 0;
+}
+
+function stopPlayback() {
+  state.playing = false;
+  if (state.playTimer) {
+    clearTimeout(state.playTimer);
+    state.playTimer = null;
+  }
+  els.btnPlay.textContent = "Play";
+}
+
+function clearPlayback() {
+  stopPlayback();
+  state.steps = [];
+  state.stepIdx = 0;
+  updateTransport();
+}
+
+function updateTransport() {
+  const total = state.steps.length;
+  els.scrubSlider.max = Math.max(0, total - 1);
+  els.scrubSlider.value = total ? state.stepIdx : 0;
+  els.scrubSlider.disabled = total <= 1;
+  els.stepCounter.textContent = total ? `${state.stepIdx + 1} / ${total}` : "0 / 0";
+
+  const hasSteps = total > 0;
+  els.btnFirst.disabled = !hasSteps || state.stepIdx === 0;
+  els.btnPrev.disabled = !hasSteps || state.stepIdx === 0;
+  els.btnNext.disabled = !hasSteps || state.stepIdx >= total - 1;
+  els.btnLast.disabled = !hasSteps || state.stepIdx >= total - 1;
+  els.btnPlay.disabled = total <= 1;
+
+  if (hasSteps) {
+    els.modePill.textContent = "PLAYBACK";
+    els.modePill.className = "mode-tag playback";
+    const step = state.steps[state.stepIdx];
+    els.stepDescLive.textContent = step.desc || "";
+    const statsEntries = Object.entries(step.stats || {});
+    els.stepStatsLive.innerHTML = statsEntries
+      .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
+      .join(" ");
+  } else {
+    els.modePill.textContent = "EDIT";
+    els.modePill.className = "mode-tag edit";
+    els.stepDescLive.textContent = "Ready. Edit the puzzle or click Solve.";
+    els.stepStatsLive.innerHTML = "";
+  }
+}
+
+function appendLog(text, type = "info") {
+  const line = document.createElement("div");
+  line.className = `log-line ${type}`;
+  line.textContent = text;
+  els.logEntries.appendChild(line);
+  els.logEntries.scrollTop = els.logEntries.scrollHeight;
+}
+
+async function renderStage() {
+  if (!state.activeSolver) return;
+  const solver = state.activeSolver;
+  const currentStep = isPlaybackMode() ? state.steps[state.stepIdx] : null;
+  const renderState = currentStep ? currentStep.state : state.editState;
+  const highlights = currentStep ? currentStep.highlights || {} : {};
+  const editable = !isPlaybackMode();
+
+  const onEdit = (newState) => {
+    clearPlayback();
+    state.editState = newState;
+    renderStage();
+  };
+
+  if (solver.renderer === "text") {
+    renderText(els.stage, solver, renderState, editable, onEdit);
+  } else if (solver.renderer === "custom" && solver.custom_view) {
+    let mod = state.customRendererCache.get(solver.custom_view);
+    if (!mod) {
+      mod = await import(solver.custom_view);
+      state.customRendererCache.set(solver.custom_view, mod);
+    }
+    mod.render(els.stage, solver, renderState, highlights, editable, onEdit);
+  } else {
+    renderGrid(els.stage, solver, renderState, highlights, editable, onEdit);
+  }
+  updateTransport();
+}
+
+function renderSidebar(filterText = "") {
+  const q = filterText.trim().toLowerCase();
+  const grouped = new Map();
+  for (const s of state.solvers) {
+    if (q && !s.name.toLowerCase().includes(q) && !s.category.toLowerCase().includes(q)) {
+      continue;
+    }
+    if (!grouped.has(s.category)) grouped.set(s.category, []);
+    grouped.get(s.category).push(s);
+  }
+
+  els.solverList.innerHTML = "";
+  for (const [cat, items] of grouped.entries()) {
+    const label = document.createElement("div");
+    label.className = "category-label";
+    label.textContent = cat;
+    els.solverList.appendChild(label);
+
+    for (const s of items) {
+      const btn = document.createElement("button");
+      btn.className = "solver-item" + (state.activeSolver?.slug === s.slug ? " active" : "");
+      btn.innerHTML = `<span>${s.name}</span><span class="solver-tag">${s.renderer}</span>`;
+      btn.addEventListener("click", () => selectSolver(s.slug));
+      els.solverList.appendChild(btn);
+    }
+  }
+}
+
+function renderParams(solver) {
+  els.dynamicParams.innerHTML = "";
+  state.params = {};
+  for (const p of solver.params || []) {
+    if (p.type === "textarea") continue; // Handled inside JSON/custom or preset
+    state.params[p.key] = p.default;
+    const wrap = document.createElement("label");
+    wrap.textContent = p.label + " ";
+
+    if (p.type === "select") {
+      const sel = document.createElement("select");
+      for (const opt of p.options || []) {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        if (opt === p.default) o.selected = true;
+        sel.appendChild(o);
+      }
+      sel.addEventListener("change", () => {
+        state.params[p.key] = sel.value;
+      });
+      wrap.appendChild(sel);
+    } else if (p.type === "bool") {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = Boolean(p.default);
+      cb.addEventListener("change", () => {
+        state.params[p.key] = cb.checked;
+      });
+      wrap.appendChild(cb);
+    } else {
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = p.default ?? "";
+      inp.style.width = "100px";
+      inp.addEventListener("input", () => {
+        state.params[p.key] = inp.value;
+      });
+      wrap.appendChild(inp);
+    }
+    els.dynamicParams.appendChild(wrap);
+  }
+}
+
+function selectSolver(slug) {
+  const solver = state.solvers.find((s) => s.slug === slug);
+  if (!solver) return;
+
+  if (state.abortController) {
+    state.abortController.abort();
+  }
+  clearPlayback();
+  els.logEntries.innerHTML = "";
+
+  state.activeSolver = solver;
+  els.solverTitle.textContent = solver.name;
+  els.solverTitle.title = solver.description || "";
+
+  const presetNames = Object.keys(solver.presets || {});
+  els.presetSelect.innerHTML = "";
+  for (const name of presetNames) {
+    const o = document.createElement("option");
+    o.value = name;
+    o.textContent = name;
+    els.presetSelect.appendChild(o);
+  }
+
+  state.activePresetName = presetNames[0] || "";
+  state.editState = state.activePresetName ? deepClone(solver.presets[state.activePresetName]) : {};
+  renderParams(solver);
+  renderSidebar(els.solverFilter.value);
+  renderStage();
+}
+
+async function runSolve() {
+  if (!state.activeSolver) return;
+  clearPlayback();
+  els.logEntries.innerHTML = "";
+  els.btnSolve.classList.add("hidden");
+  els.btnAbort.classList.remove("hidden");
+
+  const controller = new AbortController();
+  state.abortController = controller;
+
+  try {
+    const resp = await fetch(`/api/solve/${state.activeSolver.slug}/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: state.editState, params: state.params }),
+      signal: controller.signal,
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() || "";
+
+      for (const block of blocks) {
+        let evName = "message";
+        let dataStr = "";
+        for (const line of block.split("\n")) {
+          if (line.startsWith("event: ")) evName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        const payload = JSON.parse(dataStr);
+
+        if (evName === "job") {
+          state.activeJobId = payload.job_id;
+        } else if (evName === "step") {
+          state.steps.push(payload);
+          appendLog(`[${payload.type.toUpperCase()}] ${payload.desc}`, payload.type);
+        } else if (evName === "error") {
+          appendLog(`[ERROR] ${payload.error}`, "failed");
+        } else if (evName === "done") {
+          appendLog(`Finished in ${payload.elapsed_ms} ms (${payload.steps} steps).`, "solution");
+        }
+      }
+    }
+
+    if (state.steps.length > 0) {
+      // Jump to final state for instant solve, or let user scrub from 0!
+      state.stepIdx = state.steps.length - 1;
+      await renderStage();
+    }
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      appendLog(`Request failed: ${err.message}`, "failed");
+    }
+  } finally {
+    state.activeJobId = null;
+    state.abortController = null;
+    els.btnAbort.classList.add("hidden");
+    els.btnSolve.classList.remove("hidden");
+  }
+}
+
+function scheduleNextFrame() {
+  if (!state.playing) return;
+  if (state.stepIdx >= state.steps.length - 1) {
+    stopPlayback();
+    return;
+  }
+  const delay = Math.max(30, 830 - Number(els.speedSlider.value));
+  state.playTimer = setTimeout(async () => {
+    state.stepIdx += 1;
+    await renderStage();
+    scheduleNextFrame();
+  }, delay);
+}
+
+// Event bindings
+els.solverFilter.addEventListener("input", () => renderSidebar(els.solverFilter.value));
+
+els.presetSelect.addEventListener("change", () => {
+  if (!state.activeSolver) return;
+  clearPlayback();
+  state.activePresetName = els.presetSelect.value;
+  state.editState = deepClone(state.activeSolver.presets[state.activePresetName] || {});
+  renderStage();
+});
+
+els.btnReset.addEventListener("click", () => {
+  if (!state.activeSolver) return;
+  clearPlayback();
+  state.editState = deepClone(state.activeSolver.presets[state.activePresetName] || {});
+  renderStage();
+});
+
+const THEMES = [
+  { id: "chalk", label: "Theme: Chalk" },
+  { id: "plum", label: "Theme: Plum" },
+  { id: "slate", label: "Theme: Slate" },
+  { id: "forge", label: "Theme: Forge" },
+];
+
+function applyTheme(theme) {
+  const found = THEMES.find((t) => t.id === theme) || THEMES[0];
+  document.documentElement.setAttribute("data-theme", found.id);
+  localStorage.setItem("tpl_theme", found.id);
+  els.btnTheme.textContent = found.label;
+}
+
+els.btnTheme.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const idx = THEMES.findIndex((t) => t.id === cur);
+  const next = THEMES[(idx + 1) % THEMES.length];
+  applyTheme(next.id);
+});
+
+els.btnLogs.addEventListener("click", () => {
+  els.logDrawer.classList.toggle("collapsed");
+});
+
+els.btnSolve.addEventListener("click", runSolve);
+
+els.btnAbort.addEventListener("click", async () => {
+  if (state.activeJobId) {
+    await fetch(`/api/abort/${state.activeJobId}`, { method: "POST" });
+  }
+  if (state.abortController) state.abortController.abort();
+});
+
+els.btnFirst.addEventListener("click", () => {
+  stopPlayback();
+  state.stepIdx = 0;
+  renderStage();
+});
+els.btnPrev.addEventListener("click", () => {
+  stopPlayback();
+  state.stepIdx = Math.max(0, state.stepIdx - 1);
+  renderStage();
+});
+els.btnNext.addEventListener("click", () => {
+  stopPlayback();
+  state.stepIdx = Math.min(state.steps.length - 1, state.stepIdx + 1);
+  renderStage();
+});
+els.btnLast.addEventListener("click", () => {
+  stopPlayback();
+  state.stepIdx = Math.max(0, state.steps.length - 1);
+  renderStage();
+});
+els.btnPlay.addEventListener("click", () => {
+  if (state.playing) {
+    stopPlayback();
+  } else if (state.steps.length > 1) {
+    if (state.stepIdx >= state.steps.length - 1) state.stepIdx = 0;
+    state.playing = true;
+    els.btnPlay.textContent = "Pause";
+    renderStage().then(scheduleNextFrame);
+  }
+});
+els.scrubSlider.addEventListener("input", () => {
+  stopPlayback();
+  state.stepIdx = Number(els.scrubSlider.value);
+  renderStage();
+});
+
+// JSON Modal
+els.btnJson.addEventListener("click", () => {
+  const current = isPlaybackMode() ? state.steps[state.stepIdx].state : state.editState;
+  els.jsonTextarea.value = JSON.stringify(current, null, 2);
+  els.jsonModal.classList.remove("hidden");
+});
+els.btnJsonClose.addEventListener("click", () => els.jsonModal.classList.add("hidden"));
+els.btnJsonApply.addEventListener("click", () => {
+  try {
+    const parsed = JSON.parse(els.jsonTextarea.value);
+    clearPlayback();
+    state.editState = parsed;
+    els.jsonModal.classList.add("hidden");
+    renderStage();
+  } catch (e) {
+    alert("Invalid JSON: " + e.message);
+  }
+});
+
+async function init() {
+  const urlTheme = new URLSearchParams(window.location.search).get("theme");
+  const savedTheme = localStorage.getItem("tpl_theme");
+  applyTheme(urlTheme || savedTheme || "chalk");
+
+  const resp = await fetch("/api/solvers");
+  const data = await resp.json();
+  state.solvers = data.solvers || [];
+  renderSidebar();
+  if (state.solvers.length > 0) {
+    selectSolver(state.solvers[0].slug);
+  }
+}
+
+init();

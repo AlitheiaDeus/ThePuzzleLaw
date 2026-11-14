@@ -1,163 +1,101 @@
-# The Puzzle Law (`solvertools-hub`)
+# The Puzzle Law (v2)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![GUI Framework](https://img.shields.io/badge/GUI-PySide6%20(Qt%206)-41CD52.svg?style=flat&logo=qt&logoColor=white)](https://pypi.org/project/PySide6/)
+[![uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg)](https://docs.astral.sh/uv/)
+[![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/architecture-modular%20plugin%20hub-00F5D4.svg)](#architecture)
 
-> **High-Performance Modular Puzzle Solver & Interactive Visualizer Suite**  
-> Built with Python & PySide6, featuring a chalkboard-neon visual aesthetic, asynchronous generator-driven solver execution, and interactive step scrubbing.
+> **Modular, local-first Puzzle & Cipher Solver Hub**  
+> Python solver generators (`solvers/*.py`) served over a local FastAPI backend (`127.0.0.1:8000`) to a zero-build Vanilla HTML/CSS/JS workspace with Chalkboard & Midnight Plum themes.
 
-<p align="center">
-  <img src="docs/images/puzzle_suite_interface.jpg" alt="The Puzzle Law Modular Solver Suite" width="100%" />
-</p>
-
----
-
-## Overview
-
-**The Puzzle Law** is an extensible desktop application designed to solve, transcribe, and visually step through combinatorial and constraint-satisfaction puzzles. 
-
-Rather than isolated command-line scripts, it provides a unified hub where each puzzle operates as an independent plugin adhering to strict architectural contracts: **PuzzleState**, **Generator Solver**, and **Interactive Canvas**.
-
-```
-┌───────────────────────────────────────────────────────────────┐
-│                      The Puzzle Law Hub                       │
-├─────────────────┬─────────────────────────────────────────────┤
-│  Sidebar        │  Active Puzzle Viewport (QPainter Canvas)   │
-│  - Sliding Tile │  - Interactive Board / Grid Transcription   │
-│  - Liquid Sort  │  - Real-time Glow & Move Highlights         │
-│  - Sudoku       ├─────────────────────────────────────────────┤
-│  - Flip         │  Transport Bar & Timeline Scrubbing         │
-│  - Unruly       │  [⏮] [◀] [▶ Play] [▶| Step] [⏭] [⚡ Solve]  │
-│  - (More...)    ├─────────────────────────────────────────────┤
-│                 │  Collapsible Log Drawer & Metrics           │
-└─────────────────┴─────────────────────────────────────────────┘
-```
-
----
-
-## Key Features
-
-- **Decoupled Plugin Architecture**: Add new puzzles by dropping a folder into `solvertools_hub/plugins/` without modifying core navigation, theme, or playback systems.
-- **Generator-Driven Solvers**: All solvers yield `SolverStep` objects as Python generators (`yield SolverStep`), enabling:
-  - **Playback Mode**: Smooth tick-based animation with forward/backward timeline scrubbing.
-  - **Instant Solve**: Fast headless execution returning the optimal solution trajectory and performance metrics.
-- **Responsive Background Execution**: Solvers run on dedicated `QThread` workers with cooperative cancellation (`abort`) to keep the UI silky smooth at 60 FPS.
-- **Interactive Transcription**: Canvas widgets feature an **Edit Mode** (paint, click, type, or configure custom start states) and a **Playback Mode** (locked visualization).
-- **"Chalkboard & Neon Pastel" Design System**: Custom Qt Style Sheets (QSS) paired with multi-pass glow rendering in `QPainter` for high-contrast visual clarity.
-- **Import / Export**: Full clipboard and JSON serialization for saving puzzle states or pasting external layouts.
-
----
-
-## Built-in Puzzle Solvers
-
-| Puzzle | Algorithm / Engine | Description |
-| :--- | :--- | :--- |
-| **Sliding Tile (N-Puzzle)** | $A^*$ Search + Manhattan / Linear Conflict | Finds optimal sliding tile trajectories ($3\times3$, $4\times4$, etc.) with solvability parity validation. |
-| **Liquid Sorter Pro** | $A^*$ Search + Canonical Pruning | Solves multi-colored test tube / sand sorting with cycle detection and dead-end pruning. |
-| **Sudoku** | Constraint Satisfaction (CSP) + Backtracking | Solves standard $9\times9$ grid constraints with real-time cell conflicts and naked single propagation. |
-| **Flip (Lights Out)** | Linear Algebra over $\mathbb{F}_2$ (GF(2)) | Uses Gaussian elimination to calculate exact toggle patterns for matrix light grids. |
-| **Unruly** | Binary Constraint Satisfaction | Solves binary grid puzzles with strict row/column parity and no-three-in-a-row rules. |
-| **Urjo** | Constraint Satisfaction + Neighborhood Propagation | Solves dual-color grid puzzles with Moore neighborhood numerical clues, line parity, and adjacent line disparity. |
-
-*Additional solvers currently in development / integration: Flow Free, Chess Attack, ASCII/Morse, and Superking.*
-
----
-
-## Architecture & Directory Topology
-
-```
-The_Puzzle_Law/
-├── solvertools_hub/
-│   ├── main.py                  # Entry point, QSS injection, dynamic autodiscovery
-│   ├── plugins_config.json      # Plugin activation & curtain filter configuration
-│   ├── theme.py                 # Chalkboard & Neon color tokens + global styling
-│   ├── core/
-│   │   ├── base_plugin.py       # Contracts: BasePuzzleState, BaseSolver, BasePuzzleCanvas
-│   │   ├── registry.py          # Dynamic plugin discovery and config-driven filtering
-│   │   ├── worker.py            # QThread asynchronous solver runner
-│   │   └── io_manager.py        # JSON & clipboard serialization utilities
-│   ├── ui/
-│   │   ├── hub_window.py        # Main application window (Sidebar + Stacked Viewport)
-│   │   ├── transport_bar.py     # Unified playback controls & scrub slider
-│   │   └── log_drawer.py        # Real-time search trace and heuristic logger
-│   └── plugins/                 # Modular puzzle implementations
-│       ├── sliding_tile/        # [Active] 15-puzzle / NxN sliding tile
-│       ├── sand_tubes/          # [Active] Liquid Sorter Pro
-│       ├── sudoku/              # [Active] 9x9 Constraint Grid
-│       ├── flip/                # [Active] Lights Out GF(2) solver
-│       ├── unruly/              # [Active] Binary puzzle parity & run-length
-│       ├── urjo/                # [Active] Binary grid with Moore neighborhood clues
-│       ├── chess_attack/        # [Curtain / Draft] Tactical zoned chess pieces
-│       ├── cipher_room/         # [Curtain / Draft] Smooshed Morse & classical cryptanalysis
-│       ├── flow/                # [Curtain / Draft] Topological path saturation router
-│       ├── maze_navigator/      # [Curtain / Draft] 2D grid, hex, & Euclidean navigators
-│       ├── loop_games/          # [Curtain / Draft] Slitherlink, Palisade, Pearl loops
-│       └── packing_grids/       # [Curtain / Draft] Nonograms & Knuth DLX polyominoes
-├── tests/                       # Automated test suites (core, plugins, UI launch)
-├── Snippets To Integrate/       # Staging area for upcoming puzzle algorithms
-├── Prebuild_Blueprint.md        # Complete architectural blueprint and technical spec
-├── Waypoint_Implementation_Plan.md # Milestone tracker
-├── kanban.md                    # Visual task board, active milestones, and bug tracker
-└── environment_pylearn.yml      # Conda environment definition
-```
+*(The legacy PySide6 desktop app is preserved in Git under the `legacy/pyside6` branch and `v1-pyside6` tag.)*
 
 ---
 
 ## Quickstart
 
-### 1. Prerequisites
-- Python 3.10 or higher
-- Conda or virtual environment (recommended)
-
-### 2. Environment Setup
-
-Using the provided conda environment:
-```powershell
-conda env create -f environment_pylearn.yml
-conda activate pylearn
+```bash
+uv sync
+uv run python -m app.main
 ```
 
-Or install the dependencies via `pip`:
-```powershell
-pip install PySide6 loguru pyperclip numpy pytest
-```
+This starts the local server on `http://127.0.0.1:8000` and opens it in your default browser.
 
-### 3. Launching the Hub
-
-From the root of the repository:
-```powershell
-python -m solvertools_hub.main
-```
-*(or run directly: `python solvertools_hub/main.py`)*
+- Run headless tests:
+  ```bash
+  uv run pytest
+  ```
+- Start server without auto-opening a browser tab:
+  ```bash
+  uv run python -m app.main --no-browser --port 8000
+  ```
 
 ---
 
-## Running Tests
+## Architecture
 
-Test suites verify plugin contracts, state transitions, solvers, and UI initialization:
-
-```powershell
-# Run the complete test suite
-pytest tests/ -v
+```text
+ThePuzzleLaw/
+├── pyproject.toml           # uv project & dependency manifest
+├── app/
+│   ├── main.py              # FastAPI server, static mount, SSE solve streaming
+│   ├── registry.py          # Auto-discovers solvers/*.py and reads META
+│   └── runner.py            # Generator runner with cooperative abort & step caps
+├── solvers/                 # Single-file pure-Python solver modules
+│   ├── block_escape.py      # Multi-tile sliding blocks, ice, portals, lockstep chains
+│   ├── chess_attack.py      # Zoned N-Queens & N-Superking (Rook + King)
+│   ├── cipher_suite.py      # Caesar/ROT, Atbash, Reverse, Vigenere, Base64/Hex/Bin, Freq
+│   ├── flip.py              # Lights Out GF(2) Gaussian elimination
+│   ├── flood.py             # Flood-It component contraction + IDA*
+│   ├── flow.py              # Numberlink & Checkpoint Saturation Flow
+│   ├── liquid_sorter.py     # Variable-capacity A* pouring solver
+│   ├── loop_games.py        # Slitherlink single-loop solver
+│   ├── maze_navigator.py    # 2D obstacle maze A* / BFS
+│   ├── morse_decoder.py     # Spaced & unspaced/smooshed Morse Trie beam search
+│   ├── packing_grids.py     # Nonogram (Picross) line intersection + backtracking
+│   ├── sliding_tile.py      # N-Puzzle (8/15-puzzle) A* Manhattan solver
+│   ├── sudoku.py            # Hybrid Naked/Hidden Singles + MRV backtracking
+│   ├── unruly.py            # Binary grid parity & no-3-in-a-row CSP
+│   ├── urjo.py              # Binary grid with Moore clues & adjacent line disparity
+│   └── data/morse/          # Multilingual wordlists for smooshed Morse decoding
+├── web/
+│   ├── index.html           # Permanent Hub Shell (Sidebar, Stage, Transport, Logs)
+│   ├── styles.css           # Chalkboard & Midnight Plum themes
+│   ├── app.js               # SSE client, Edit/Playback state, timeline scrubber
+│   └── renderers/
+│       ├── grid.js          # Generic interactive 2D grid/board renderer
+│       ├── text.js          # Cipher & signal workbench + frequency bar chart
+│       └── custom/          # Specialized SVG/HTML views (liquid_tubes.js, loop_board.js)
+└── tests/
+    ├── test_registry.py     # Solver autodiscovery & META schema validation
+    ├── test_solvers.py      # Default preset solve & cooperative abort tests
+    └── test_api.py          # FastAPI endpoints & SSE stream smoke tests
 ```
 
 ---
 
-## Developer Guide: Adding a Puzzle Plugin
+## Adding a New Solver
 
-To create a new puzzle plugin, add a new directory under `solvertools_hub/plugins/<your_puzzle>/` implementing the core contracts:
+Drop a single `.py` file into `solvers/` exporting `META` and `solve(state, params, should_abort)`:
 
-1. **`state.py`**: Inherit from `BasePuzzleState`. Implement `clone()`, `validate()`, `serialize()`, and `deserialize()`.
-2. **`solver.py`**: Inherit from `BaseSolver`. Implement `solve(initial_state, stream_search=False)` yielding `SolverStep` instances.
-3. **`canvas.py`**: Inherit from `BasePuzzleCanvas`. Handle user interaction (`mousePressEvent`, `keyPressEvent`) and paint the board in `paintEvent`.
-4. **`plugin.py`**: Inherit from `BasePlugin` to bundle metadata, state, solver, and canvas.
+```python
+META = {
+    "slug": "my_puzzle",
+    "name": "My Puzzle",
+    "category": "2D Grid",
+    "renderer": "grid",  # "grid" | "text" | "custom"
+    "description": "Short description.",
+    "grid_meta": {"mode": "number", "editable": True},
+    "presets": {"Default": {"board": [[0, 0], [0, 0]]}},
+    "params": [],
+}
 
-Register your plugin in `solvertools_hub/plugins/__init__.py` and the Hub will automatically load it with full playback and transcription support!
+def solve(state, params, should_abort):
+    yield {"type": "start", "state": state, "highlights": {}, "desc": "Loaded", "stats": {}}
+    if should_abort():
+        return
+    # ... compute steps ...
+    yield {"type": "solution", "state": solved_state, "highlights": {}, "desc": "Solved!", "stats": {}}
+```
 
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+`app/registry.py` discovers it automatically on startup—no config file registration required.
