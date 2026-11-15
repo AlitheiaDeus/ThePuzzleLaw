@@ -166,6 +166,20 @@ async function renderStage() {
     renderStage();
   };
 
+  const setSolveAllowed = (valid, reason = "") => {
+    if (!editable) {
+      els.btnSolve.disabled = false;
+      els.btnSolve.title = "";
+      return;
+    }
+    els.btnSolve.disabled = !valid;
+    els.btnSolve.title = valid ? "" : reason;
+  };
+
+  // Default to enabled before renderer runs; custom renderers can restrict via setSolveAllowed.
+  els.btnSolve.disabled = false;
+  els.btnSolve.title = "";
+
   if (solver.renderer === "text") {
     renderText(els.stage, solver, renderState, editable, onEdit);
   } else if (solver.renderer === "custom" && solver.custom_view) {
@@ -174,7 +188,7 @@ async function renderStage() {
       mod = await import(solver.custom_view);
       state.customRendererCache.set(solver.custom_view, mod);
     }
-    mod.render(els.stage, solver, renderState, highlights, editable, onEdit);
+    mod.render(els.stage, solver, renderState, highlights, editable, onEdit, setSolveAllowed);
   } else {
     renderGrid(els.stage, solver, renderState, highlights, editable, onEdit);
   }
@@ -273,7 +287,11 @@ function renderParams(solver, savedParams = null) {
       cb.checked = Boolean(initVal);
       cb.addEventListener("change", () => {
         state.params[p.key] = cb.checked;
+        if (state.editState && typeof state.editState === "object") {
+          state.editState[p.key] = cb.checked;
+        }
         saveDraft();
+        if (!isPlaybackMode()) renderStage();
       });
       wrap.appendChild(cb);
     } else {
@@ -341,7 +359,7 @@ function selectSolver(slug) {
 }
 
 async function runSolve() {
-  if (!state.activeSolver) return;
+  if (!state.activeSolver || els.btnSolve.disabled) return;
   clearPlayback();
   els.logEntries.innerHTML = "";
   els.btnSolve.classList.add("hidden");

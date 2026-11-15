@@ -198,3 +198,69 @@ def test_rectangular_resizing_and_unified_logs():
         res = run_solver_sync(e, pst, {p["key"]: p.get("default") for p in e.meta.get("params", [])})
         assert all(s["type"] != "deduce" for s in res["steps"]), f"{slug} emitted deduce during pure search"
         assert any(s["type"] == "explore" for s in res["steps"]), f"{slug} missing explore step"
+
+
+def test_liquid_sorter_variable_caps_tokens_and_validation():
+    entry = SOLVERS["liquid_sorter"]
+
+    # Variable capacity + mixed letter/number tokens (p,p,p,./1,1,./p,1,.,.)
+    res_ok = run_solver_sync(
+        entry,
+        {
+            "capacities": [4, 3, 4],
+            "tubes": [["p", "p", "p"], ["1", "1"], ["p", "1"]],
+        },
+        {"allow_split_colors": False},
+    )
+    assert res_ok["ok"] is True
+    assert res_ok["steps"][-1]["type"] == "solution"
+    final_tubes = res_ok["steps"][-1]["state"]["tubes"]
+    assert sorted(final_tubes, key=lambda t: (len(t), str(t))) == [[], ["1", "1", "1"], ["p", "p", "p", "p"]]
+
+    # Floating tile rejected
+    res_float = run_solver_sync(
+        entry,
+        {
+            "capacities": [4, 4, 4],
+            "tubes": [["p", None, "p"], ["p", "p"], []],
+        },
+        {"allow_split_colors": False},
+    )
+    assert res_float["steps"][-1]["type"] == "failed"
+    assert "floating" in res_float["steps"][-1]["desc"].lower()
+
+    # Mismatched capacity without split rejected
+    res_mismatch = run_solver_sync(
+        entry,
+        {
+            "capacities": [4, 4, 4],
+            "tubes": [["p", "p", "p"], ["1", "1"], ["1"]],
+        },
+        {"allow_split_colors": False},
+    )
+    assert res_mismatch["steps"][-1]["type"] == "failed"
+
+    # Split colors ON: must partition into full 1-color or empty tubes (8 p -> 4+4, 3 r -> 3)
+    res_split_ok = run_solver_sync(
+        entry,
+        {
+            "capacities": [4, 4, 3, 4],
+            "tubes": [["p", "r", "p", "p"], ["p", "p", "r", "p"], ["r", "p"], ["p"]],
+        },
+        {"allow_split_colors": True},
+    )
+    assert res_split_ok["steps"][-1]["type"] == "solution"
+    split_final = res_split_ok["steps"][-1]["state"]["tubes"]
+    for idx, t in enumerate(split_final):
+        assert len(t) == 0 or (len(set(t)) == 1 and len(t) == [4, 4, 3, 4][idx])
+
+    # Split colors ON: impossible to fill whole tubes (5 p, 3 r in [4, 4, 4]) pre-filtered
+    res_split_bad = run_solver_sync(
+        entry,
+        {
+            "capacities": [4, 4, 4],
+            "tubes": [["p", "p", "p"], ["r", "r", "r"], ["p", "p"]],
+        },
+        {"allow_split_colors": True},
+    )
+    assert res_split_bad["steps"][-1]["type"] == "failed"
