@@ -343,14 +343,21 @@ def solve(
     ) -> Generator[Dict[str, Any], None, Optional[List[List[int]]]]:
         if should_abort():
             return None
+        row_empties = [cur[r].count(0) for r in range(rows)]
+        col_empties = [sum(1 for r in range(rows) if cur[r][c] == 0) for c in range(cols)]
         best = None
-        best_score = -1
+        best_score: Tuple[int, int, int, int] = (-1, -1, -1, -1)
         for r in range(rows):
             for c in range(cols):
                 if cur[r][c] == 0:
-                    adj = sum(1 for nr, nc in _neighbors(r, c, rows, cols) if clues[nr][nc] is not None)
-                    if adj > best_score:
-                        best_score = adj
+                    nbrs = _neighbors(r, c, rows, cols)
+                    own = 1 if clues[r][c] is not None else 0
+                    adj_active = sum(1 for nr, nc in nbrs if clues[nr][nc] is not None and cur[nr][nc] != 0)
+                    adj_all = sum(1 for nr, nc in nbrs if clues[nr][nc] is not None)
+                    tightness = max(cols - row_empties[r], rows - col_empties[c])
+                    score = (own, adj_active, tightness, adj_all)
+                    if score > best_score:
+                        best_score = score
                         best = (r, c)
         if best is None:
             return cur if _is_solved(cur, clues, rows, cols) else None
