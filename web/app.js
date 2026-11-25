@@ -24,6 +24,7 @@ const els = {
   dynamicParams: document.getElementById("dynamic-params"),
   stage: document.getElementById("stage"),
   modePill: document.getElementById("mode-pill"),
+  scrubTrack: document.getElementById("scrub-track"),
   scrubSlider: document.getElementById("scrub-slider"),
   stepCounter: document.getElementById("step-counter"),
   speedSlider: document.getElementById("speed-slider"),
@@ -108,12 +109,43 @@ function clearPlayback() {
   updateTransport();
 }
 
+function stepTypeColor(type) {
+  if (type === "backtrack" || type === "failed") return "var(--accent-hot)";
+  if (type === "explore") return "var(--accent-secondary)";
+  if (type === "solution") return "var(--accent-warm)";
+  if (type === "deduce") return "var(--accent-primary)";
+  return "var(--border)";
+}
+
+function updateScrubTrack() {
+  const total = state.steps.length;
+  if (total <= 1) {
+    els.scrubTrack.style.background = "";
+    return;
+  }
+  const stops = [];
+  let startIdx = 0;
+  let curColor = stepTypeColor(state.steps[0].type);
+  for (let i = 1; i <= total; i++) {
+    const nextColor = i < total ? stepTypeColor(state.steps[i].type) : null;
+    if (nextColor !== curColor) {
+      const p0 = ((startIdx / total) * 100).toFixed(2);
+      const p1 = ((i / total) * 100).toFixed(2);
+      stops.push(`${curColor} ${p0}%`, `${curColor} ${p1}%`);
+      startIdx = i;
+      curColor = nextColor;
+    }
+  }
+  els.scrubTrack.style.background = `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
 function updateTransport() {
   const total = state.steps.length;
   els.scrubSlider.max = Math.max(0, total - 1);
   els.scrubSlider.value = total ? state.stepIdx : 0;
   els.scrubSlider.disabled = total <= 1;
   els.stepCounter.textContent = total ? `${state.stepIdx + 1} / ${total}` : "0 / 0";
+  updateScrubTrack();
 
   const hasSteps = total > 0;
   els.btnFirst.disabled = !hasSteps || state.stepIdx === 0;

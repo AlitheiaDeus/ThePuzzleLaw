@@ -761,9 +761,67 @@ textarea:focus {
   gap: 10px;
 }
 
-.scrubber-wrap input[type="range"] {
+.scrub-track-wrap {
+  position: relative;
   flex: 1;
-  accent-color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  height: 20px;
+}
+
+.scrub-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  pointer-events: none;
+}
+
+.scrub-track-wrap input[type="range"] {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.scrub-track-wrap input[type="range"]:disabled {
+  cursor: default;
+}
+
+.scrub-track-wrap input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+
+.scrub-track-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 3px;
+  background: var(--text-main);
+  border: 1px solid var(--bg-main);
+}
+
+.scrub-track-wrap input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: transparent;
+}
+
+.scrub-track-wrap input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--text-main);
+  border: 1px solid var(--bg-main);
 }
 
 .step-counter {
@@ -836,6 +894,11 @@ textarea:focus {
   font-weight: 700;
 }
 
+.log-line.explore {
+  color: var(--accent-secondary);
+}
+
+.log-line.backtrack,
 .log-line.failed {
   color: var(--accent-hot);
   font-weight: 700;
