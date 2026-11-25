@@ -203,8 +203,8 @@ def _propagate(
                                 collector.append((nr, nc, col, f"Clue ({r + 1},{c + 1})={k} Demands"))
                             changed = True
 
-        # 4. Coupled-clue overlap (subset & partial-overlap bounds)
-        constraints: List[Tuple[int, int, set[Tuple[int, int]], int]] = []
+        # 4. Coupled constraints (clue <-> clue and clue <-> row/col balance)
+        constraints: List[Tuple[str, set[Tuple[int, int]], int]] = []
         for r in range(rows):
             for c in range(cols):
                 k = clues[r][c]
@@ -218,12 +218,21 @@ def _propagate(
                 same = sum(1 for nr, nc in nbrs if b[nr][nc] == col)
                 need_same = k - same
                 need_blue = need_same if col == 1 else len(emp) - need_same
-                constraints.append((r, c, emp, need_blue))
+                constraints.append((f"Clue ({r + 1},{c + 1})", emp, need_blue))
+
+        for r in range(rows):
+            emp_r = {(r, c) for c in range(cols) if b[r][c] == 0}
+            if emp_r:
+                constraints.append((f"Row {r + 1}", emp_r, half_row - b[r].count(1)))
+        for c in range(cols):
+            emp_c = {(r, c) for r in range(rows) if b[r][c] == 0}
+            if emp_c:
+                constraints.append((f"Col {c + 1}", emp_c, half_col - sum(1 for r in range(rows) if b[r][c] == 1)))
 
         forced_any = False
-        for ra, ca, ea, na in constraints:
-            for rb, cb, eb, nb in constraints:
-                if (ra, ca) == (rb, cb):
+        for la, ea, na in constraints:
+            for lb, eb, nb in constraints:
+                if la == lb:
                     continue
                 shared = ea & eb
                 rem_b = eb - shared
@@ -237,7 +246,7 @@ def _propagate(
                     return False
                 fill = 1 if min_rem == len(rem_b) else (2 if max_rem == 0 else 0)
                 if fill:
-                    reason = f"Coupled Clues ({ra + 1},{ca + 1}) & ({rb + 1},{cb + 1})"
+                    reason = f"Coupled {la} & {lb}"
                     for nr, nc in sorted(rem_b):
                         if b[nr][nc] == 0:
                             b[nr][nc] = fill

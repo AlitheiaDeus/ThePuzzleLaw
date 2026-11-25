@@ -285,7 +285,30 @@ def test_urjo_coupled_clues_deduction():
     assert board[3][0] == 2
     assert board[3][1] == 2
     assert board[3][2] == 2
-    assert any("Coupled Clues" in reason for _, _, _, reason in steps)
+    assert any("Coupled" in reason for _, _, _, reason in steps)
+
+
+def test_urjo_clue_row_balance_coupling():
+    from solvers.urjo import _propagate
+
+    # 6x6: Row 0 has 4 empty cells (0,0)..(0,3) and needs 2 Blues.
+    # Clue at (1,1)=1 (Blue) with clue 1 has 0 Blue neighbors and 3 empty neighbors (0,0),(0,1),(0,2).
+    # So {(0,0),(0,1),(0,2)} has 1 Blue, forcing (0,3) = 1 (Blue)!
+    board = [
+        [0, 0, 0, 0, 1, 2],
+        [2, 1, 2, 0, 0, 0],
+        [2, 2, 2, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+    ]
+    clues = [[None] * 6 for _ in range(6)]
+    clues[1][1] = 1
+    steps = []
+    ok = _propagate(board, clues, 6, 6, collector=steps)
+    assert ok is True
+    assert board[0][3] == 1
+    assert any("Coupled Clue (2,2) & Row 1" in reason for _, _, _, reason in steps)
 
 
 def test_urjo_streams_branch_deductions_and_backtracks():
