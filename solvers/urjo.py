@@ -329,9 +329,9 @@ def solve(
             "stats": {"deductions": len(logic_steps)},
         }
 
-    branch_snapshots: List[Tuple[List[List[int]], int, int, int]] = []
-
-    def backtrack(cur: List[List[int]]) -> Optional[List[List[int]]]:
+    def backtrack(
+        cur: List[List[int]], depth: int = 0
+    ) -> Generator[Dict[str, Any], None, Optional[List[List[int]]]]:
         if should_abort():
             return None
         best = None
@@ -348,18 +348,54 @@ def solve(
 
         er, ec = best
         for cand in (1, 2):
+            if should_abort():
+                return None
             nxt = [list(row) for row in cur]
             nxt[er][ec] = cand
-            if _propagate(nxt, clues, rows, cols):
-                res = backtrack(nxt)
+            label = "Blue" if cand == 1 else "Red"
+            prefix = "Deduction stalled -> " if depth == 0 and cand == 1 else ""
+            yield {
+                "type": "explore",
+                "state": {"board": [list(row) for row in nxt], "clues": clues},
+                "highlights": {"cells": [[er, ec]], "color": "secondary"},
+                "desc": f"{prefix}Branch d={depth + 1}: ({er + 1}, {ec + 1}) = {label}",
+                "stats": {"depth": depth + 1},
+            }
+
+            branch_steps: List[Tuple[int, int, int, str]] = []
+            replay_branch = [list(row) for row in nxt]
+            ok = _propagate(nxt, clues, rows, cols, collector=branch_steps)
+            for sr, sc, sval, reason in branch_steps:
+                if should_abort():
+                    return None
+                replay_branch[sr][sc] = sval
+                yield {
+                    "type": "deduce",
+                    "state": {"board": [list(row) for row in replay_branch], "clues": clues},
+                    "highlights": {"cells": [[sr, sc]], "color": "primary"},
+                    "desc": f"[d={depth + 1}] {reason}: ({sr + 1}, {sc + 1}) = {'Blue' if sval == 1 else 'Red'}",
+                    "stats": {"depth": depth + 1},
+                }
+
+            if ok:
+                res = yield from backtrack(nxt, depth + 1)
                 if res is not None:
-                    branch_snapshots.append(([list(row) for row in nxt], er, ec, cand))
                     return res
+                if should_abort():
+                    return None
+
+            yield {
+                "type": "backtrack",
+                "state": {"board": [list(row) for row in cur], "clues": clues},
+                "highlights": {"cells": [[er, ec]], "color": "hot"},
+                "desc": f"[d={depth + 1}] {'Contradiction' if not ok else 'Dead end'} for ({er + 1}, {ec + 1}) = {label} -> backtrack",
+                "stats": {"depth": depth + 1},
+            }
         return None
 
     solved_board = board
     if any(0 in row for row in board):
-        res = backtrack(board)
+        res = yield from backtrack(board)
         if res is None:
             if not should_abort():
                 yield {
@@ -370,15 +406,6 @@ def solve(
                     "stats": {},
                 }
             return
-        for idx, (snap_b, r, c, val) in enumerate(reversed(branch_snapshots)):
-            prefix = "Deduction stalled -> " if idx == 0 else ""
-            yield {
-                "type": "explore",
-                "state": {"board": snap_b, "clues": clues},
-                "highlights": {"cells": [[r, c]], "color": "secondary"},
-                "desc": f"{prefix}Branch ({r + 1}, {c + 1}) = {'Blue' if val == 1 else 'Red'}",
-                "stats": {},
-            }
         solved_board = res
 
     yield {

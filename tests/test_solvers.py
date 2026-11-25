@@ -286,3 +286,26 @@ def test_urjo_coupled_clues_deduction():
     assert board[3][1] == 2
     assert board[3][2] == 2
     assert any("Coupled Clues" in reason for _, _, _, reason in steps)
+
+
+def test_urjo_streams_branch_deductions_and_backtracks():
+    entry = SOLVERS["urjo"]
+    # Empty 4x4 with a single clue forcing branching & backtracking before finding a valid solution
+    state = {
+        "board": [[0] * 4 for _ in range(4)],
+        "clues": [
+            [1, None, None, None],
+            [None, None, None, None],
+            [None, None, None, None],
+            [None, None, None, None],
+        ],
+    }
+    res = run_solver_sync(entry, state, {})
+    assert res["ok"] is True
+    types = [s["type"] for s in res["steps"]]
+    assert "explore" in types
+    assert "deduce" in types
+    assert types[-1] == "solution"
+    # Verify branch deductions are interleaved after explore steps rather than batched
+    first_explore = types.index("explore")
+    assert "deduce" in types[first_explore:]
