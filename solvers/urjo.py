@@ -14,8 +14,8 @@ META: Dict[str, Any] = {
         "mode": "cycle",
         "min_val": 0,
         "max_val": 2,
-        "labels": {"0": "", "1": "R", "2": "B"},
-        "colors": {"0": "#232629", "1": "#B3472C", "2": "#01CA6B"},
+        "labels": {"0": "", "1": "B", "2": "R"},
+        "colors": {"0": "#232629", "1": "#3498DB", "2": "#E74C3C"},
         "editable": True,
         "resizable": True,
         "dim_step": 2,
@@ -25,12 +25,12 @@ META: Dict[str, Any] = {
     "presets": {
         "6x6": {
             "board": [
-                [1, 0, 0, 0, 2, 0],
-                [0, 2, 0, 0, 0, 0],
-                [0, 0, 2, 1, 0, 0],
+                [2, 0, 0, 0, 1, 0],
+                [0, 1, 0, 0, 0, 0],
                 [0, 0, 1, 2, 0, 0],
-                [1, 0, 0, 0, 2, 0],
-                [0, 0, 0, 0, 0, 2],
+                [0, 0, 2, 1, 0, 0],
+                [2, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
             ],
             "clues": [
                 [2, None, None, None, 3, None],
@@ -43,10 +43,10 @@ META: Dict[str, Any] = {
         },
         "4x4": {
             "board": [
-                [1, 0, 0, 0],
-                [0, 1, 2, 0],
+                [2, 0, 0, 0],
+                [0, 2, 1, 0],
                 [0, 0, 0, 0],
-                [0, 0, 0, 1],
+                [0, 0, 0, 2],
             ],
             "clues": [
                 [1, None, None, None],
@@ -176,12 +176,12 @@ def _propagate(
                     if r_ok and not b_ok:
                         b[r][c] = col = 1
                         if collector is not None:
-                            collector.append((r, c, 1, f"Clue {k} Forces Red"))
+                            collector.append((r, c, 1, f"Clue {k} Forces Blue"))
                         changed = True
                     elif b_ok and not r_ok:
                         b[r][c] = col = 2
                         if collector is not None:
-                            collector.append((r, c, 2, f"Clue {k} Forces Blue"))
+                            collector.append((r, c, 2, f"Clue {k} Forces Red"))
                         changed = True
 
                 if col != 0:
@@ -280,7 +280,7 @@ def solve(
             "type": "deduce",
             "state": {"board": [list(row) for row in replay], "clues": clues},
             "highlights": {"cells": [[r, c]], "color": "primary"},
-            "desc": f"{reason}: ({r + 1}, {c + 1}) = {'Red' if val == 1 else 'Blue'}",
+            "desc": f"{reason}: ({r + 1}, {c + 1}) = {'Blue' if val == 1 else 'Red'}",
             "stats": {"deductions": len(logic_steps)},
         }
 
@@ -331,7 +331,7 @@ def solve(
                 "type": "explore",
                 "state": {"board": snap_b, "clues": clues},
                 "highlights": {"cells": [[r, c]], "color": "secondary"},
-                "desc": f"{prefix}Branch ({r + 1}, {c + 1}) = {'Red' if val == 1 else 'Blue'}",
+                "desc": f"{prefix}Branch ({r + 1}, {c + 1}) = {'Blue' if val == 1 else 'Red'}",
                 "stats": {},
             }
         solved_board = res
