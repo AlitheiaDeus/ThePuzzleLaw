@@ -1,0 +1,127 @@
+{
+  "anchor": "USER",
+  "cards": [
+    {
+      "column": "completed",
+      "cynefin": "complicated",
+      "dependencies": [],
+      "id": "V2-CORE",
+      "kano": "must-be",
+      "priority": "High",
+      "spec_file": "tasks/V2-CORE.md",
+      "title": "Archive v1 PySide6 in Git & Flatten Repo to uv + FastAPI + HTML/JS",
+      "visibility": 5,
+      "wardley": "product"
+    },
+    {
+      "column": "completed",
+      "cynefin": "clear",
+      "dependencies": [
+        "V2-CORE"
+      ],
+      "id": "V2-UI",
+      "kano": "delighter",
+      "priority": "Medium",
+      "spec_file": "tasks/V2-UI.md",
+      "title": "Chalkboard & Midnight Plum Dual Theme System",
+      "visibility": 3,
+      "wardley": "product"
+    },
+    {
+      "column": "completed",
+      "cynefin": "complicated",
+      "dependencies": [
+        "V2-CORE"
+      ],
+      "id": "V2-PORT",
+      "kano": "performance",
+      "priority": "High",
+      "spec_file": "tasks/V2-PORT.md",
+      "title": "Port 13 Hub Plugins + Block Escape + Superking + Cipher/Morse Tools",
+      "visibility": 1,
+      "wardley": "product"
+    },
+    {
+      "column": "backlog",
+      "cynefin": "complex",
+      "dependencies": [
+        "V2-CORE"
+      ],
+      "id": "V2-01",
+      "kano": "performance",
+      "priority": "Medium",
+      "spec_file": "tasks/V2-01.md",
+      "title": "Computer Vision Board Capture Input Adapter (OpenCV + OCR)",
+      "visibility": 3,
+      "wardley": "custom"
+    },
+    {
+      "column": "backlog",
+      "cynefin": "complicated",
+      "dependencies": [
+        "V2-CORE"
+      ],
+      "id": "V2-02",
+      "kano": "performance",
+      "priority": "Low",
+      "spec_file": "tasks/V2-02.md",
+      "title": "Polyomino / Pentomino DLX Exact Cover Solver",
+      "visibility": 3,
+      "wardley": "custom"
+    },
+    {
+      "column": "backlog",
+      "cynefin": "complicated",
+      "dependencies": [
+        "V2-PORT"
+      ],
+      "id": "V2-03",
+      "kano": "performance",
+      "priority": "Low",
+      "spec_file": "tasks/V2-03.md",
+      "title": "Hexagonal & Weighted Terrain Mode in Maze Navigator",
+      "visibility": 3,
+      "wardley": "custom"
+    }
+  ],
+  "columns": [
+    {
+      "collapsed": false,
+      "id": "reported",
+      "label": "Reported",
+      "wip_limit": null
+    },
+    {
+      "collapsed": false,
+      "id": "frozen",
+      "label": "Frozen",
+      "wip_limit": null
+    },
+    {
+      "collapsed": false,
+      "id": "backlog",
+      "label": "Backlog",
+      "wip_limit": null
+    },
+    {
+      "collapsed": false,
+      "id": "todo",
+      "label": "Todo",
+      "wip_limit": null
+    },
+    {
+      "collapsed": false,
+      "id": "in_progress",
+      "label": "In Progress",
+      "wip_limit": 1
+    },
+    {
+      "collapsed": false,
+      "id": "completed",
+      "label": "Completed",
+      "wip_limit": null
+    }
+  ],
+  "title": "The Puzzle Law v2",
+  "version": 1
+}

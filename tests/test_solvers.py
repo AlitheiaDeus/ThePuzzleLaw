@@ -332,3 +332,44 @@ def test_urjo_streams_branch_deductions_and_backtracks():
     # Verify branch deductions are interleaved after explore steps rather than batched
     first_explore = types.index("explore")
     assert "deduce" in types[first_explore:]
+
+
+def test_rubiks_cube_diagnostics_and_abort():
+    from solvers.rubiks_cube import _solved_faces, _is_solved_faces
+
+    entry = SOLVERS["rubiks_cube"]
+    solved = {"faces": _solved_faces()}
+    res_ok = run_solver_sync(entry, solved, {})
+    assert res_ok["ok"] is True
+    assert res_ok["steps"][0]["type"] == "start"
+    assert res_ok["steps"][-1]["type"] == "solution"
+    assert _is_solved_faces(res_ok["steps"][-1]["state"]["faces"])
+
+    # Unsolvable: single corner twisted (swap U[2][2] and R[0][0] on URF corner)
+    bad_twist = {"faces": _solved_faces()}
+    bad_twist["faces"]["U"][2][2], bad_twist["faces"]["R"][0][0] = (
+        bad_twist["faces"]["R"][0][0],
+        bad_twist["faces"]["U"][2][2],
+    )
+    res_twist = run_solver_sync(entry, bad_twist, {})
+    assert res_twist["ok"] is True
+    assert res_twist["steps"][-1]["type"] == "failed"
+    assert "twist" in res_twist["steps"][-1]["desc"].lower()
+
+    # Unsolvable: single edge flipped (swap U[2][1] and F[0][1] on UF edge)
+    bad_flip = {"faces": _solved_faces()}
+    bad_flip["faces"]["U"][2][1], bad_flip["faces"]["F"][0][1] = (
+        bad_flip["faces"]["F"][0][1],
+        bad_flip["faces"]["U"][2][1],
+    )
+    res_flip = run_solver_sync(entry, bad_flip, {})
+    assert res_flip["ok"] is True
+    assert res_flip["steps"][-1]["type"] == "failed"
+    assert "edge flip" in res_flip["steps"][-1]["desc"].lower()
+
+    # Cooperative abort stops after start
+    first_preset = copy.deepcopy(next(iter(entry.meta["presets"].values())))
+    aborted_steps = list(entry.solve(first_preset, {}, lambda: True))
+    assert len(aborted_steps) == 1
+    assert aborted_steps[0]["type"] == "start"
+

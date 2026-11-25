@@ -133,6 +133,24 @@ def _propagate(
                     if collector is not None:
                         collector.append((r + 1, c, b[r + 1][c], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
                     changed = True
+            elif len(e1) == 2 and not e2 and r1.count(1) == half_row - 1 and r1.count(2) == half_row - 1:
+                c_a, c_b = e1
+                if r2[c_a] != r2[c_b] and all(r1[i] == r2[i] for i in range(cols) if i not in (c_a, c_b)):
+                    b[r][c_a] = r2[c_b]
+                    b[r][c_b] = r2[c_a]
+                    if collector is not None:
+                        collector.append((r, c_a, b[r][c_a], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
+                        collector.append((r, c_b, b[r][c_b], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
+                    changed = True
+            elif len(e2) == 2 and not e1 and r2.count(1) == half_row - 1 and r2.count(2) == half_row - 1:
+                c_a, c_b = e2
+                if r1[c_a] != r1[c_b] and all(r1[i] == r2[i] for i in range(cols) if i not in (c_a, c_b)):
+                    b[r + 1][c_a] = r1[c_b]
+                    b[r + 1][c_b] = r1[c_a]
+                    if collector is not None:
+                        collector.append((r + 1, c_a, b[r + 1][c_a], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
+                        collector.append((r + 1, c_b, b[r + 1][c_b], f"Adjacent Row Disparity {r + 1}-{r + 2}"))
+                    changed = True
 
         for c in range(cols - 1):
             c1 = [b[r][c] for r in range(rows)]
@@ -154,6 +172,24 @@ def _propagate(
                     b[r][c + 1] = 3 - c1[r]
                     if collector is not None:
                         collector.append((r, c + 1, b[r][c + 1], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
+                    changed = True
+            elif len(e1) == 2 and not e2 and c1.count(1) == half_col - 1 and c1.count(2) == half_col - 1:
+                r_a, r_b = e1
+                if c2[r_a] != c2[r_b] and all(c1[i] == c2[i] for i in range(rows) if i not in (r_a, r_b)):
+                    b[r_a][c] = c2[r_b]
+                    b[r_b][c] = c2[r_a]
+                    if collector is not None:
+                        collector.append((r_a, c, b[r_a][c], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
+                        collector.append((r_b, c, b[r_b][c], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
+                    changed = True
+            elif len(e2) == 2 and not e1 and c2.count(1) == half_col - 1 and c2.count(2) == half_col - 1:
+                r_a, r_b = e2
+                if c1[r_a] != c1[r_b] and all(c1[i] == c2[i] for i in range(rows) if i not in (r_a, r_b)):
+                    b[r_a][c + 1] = c1[r_b]
+                    b[r_b][c + 1] = c1[r_a]
+                    if collector is not None:
+                        collector.append((r_a, c + 1, b[r_a][c + 1], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
+                        collector.append((r_b, c + 1, b[r_b][c + 1], f"Adjacent Col Disparity {c + 1}-{c + 2}"))
                     changed = True
 
         # 3. Moore neighborhood clues
