@@ -11,7 +11,8 @@ META: Dict[str, Any] = {
     "slug": "maze_navigator",
     "name": "Maze Navigator",
     "category": "Path",
-    "renderer": "grid",
+    "renderer": "custom",
+    "custom_view": "/renderers/custom/hex_maze.js",
     "description": (
         "Shortest-path solver (A*, Dijkstra, BFS) supporting tile walls, lattice edge walls, "
         "weighted terrain (2x/4x), Euclidean tie-breakers/shortcuts, and quarter-arc corner smoothing."
@@ -122,8 +123,45 @@ META: Dict[str, Any] = {
                 [0, 0, 0, 1, 0, 0, 0],
             ],
         },
+        "Hex Maze 7x7": {
+            "geometry": "Hexagonal (6-Way)",
+            "maze_type": "Tile Walls",
+            "movement": "Manhattan (4-Way)",
+            "tie_breaker": "None",
+            "board": [
+                [2, 0, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 1, 1, 0],
+                [0, 0, 0, 0, 1, 0, 0],
+                [1, 1, 0, 1, 1, 0, 1],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 3],
+            ],
+        },
+        "Hex Weighted Terrain 7x7": {
+            "geometry": "Hexagonal (6-Way)",
+            "maze_type": "Tile Walls",
+            "movement": "Manhattan (4-Way)",
+            "tie_breaker": "None",
+            "board": [
+                [2, 5, 5, 0, 0, 0, 0],
+                [4, 5, 0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0, 0, 4],
+                [0, 1, 0, 0, 0, 5, 4],
+                [0, 0, 0, 5, 5, 0, 0],
+                [4, 4, 0, 5, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 3],
+            ],
+        },
     },
     "params": [
+        {
+            "key": "geometry",
+            "label": "Grid",
+            "type": "select",
+            "default": "Square Grid",
+            "options": ["Square Grid", "Hexagonal (6-Way)"],
+        },
         {
             "key": "algorithm",
             "label": "Algorithm",
@@ -293,6 +331,8 @@ def solve(
     weights = state.get("weights")
 
     algo = str(params.get("algorithm") or state.get("algorithm") or "A*")
+    geometry = str(params.get("geometry") or state.get("geometry") or "Square Grid")
+    is_hex = geometry == "Hexagonal (6-Way)"
     maze_type = str(params.get("maze_type") or state.get("maze_type") or "Tile Walls")
     movement = str(params.get("movement") or state.get("movement") or "Manhattan (4-Way)")
     tie_breaker = str(params.get("tie_breaker") or state.get("tie_breaker") or "None")
@@ -319,6 +359,7 @@ def solve(
     def snap() -> Dict[str, Any]:
         out: Dict[str, Any] = {
             "board": [list(row) for row in board],
+            "geometry": geometry,
             "maze_type": "Edge Walls" if use_edge_walls else "Tile Walls",
             "movement": movement,
             "tie_breaker": tie_breaker,
@@ -348,13 +389,35 @@ def solve(
 
     ortho_dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     diag_dirs = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-    allow_diag = movement in ("Diagonal Euclidean (8-Way)", "Quarter-Arc Corners")
-    use_quarter_arc = movement == "Quarter-Arc Corners"
+    hex_even_dirs = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)]
+    hex_odd_dirs = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)]
+    allow_diag = (not is_hex) and movement in ("Diagonal Euclidean (8-Way)", "Quarter-Arc Corners")
+    use_quarter_arc = (not is_hex) and movement == "Quarter-Arc Corners"
     dirs = ortho_dirs + diag_dirs if allow_diag else ortho_dirs
+
+    def _to_cube(r: int, c: int) -> Tuple[int, int, int]:
+        q = c - (r - (r & 1)) // 2
+        s = -q - r
+        return (q, r, s)
+
+    goal_cube = _to_cube(goal[0], goal[1])
+
+    def hex_neighbors(r: int, c: int) -> List[Tuple[int, int]]:
+        offsets = hex_odd_dirs if (r & 1) else hex_even_dirs
+        out: List[Tuple[int, int]] = []
+        for dr, dc in offsets:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] != 1:
+                out.append((nr, nc))
+        return out
 
     def heuristic(r: int, c: int) -> float:
         if algo in ("Dijkstra", "BFS"):
             return 0.0
+        if is_hex:
+            q, rr, s = _to_cube(r, c)
+            gq, gr, gs = goal_cube
+            return min_w * max(abs(q - gq), abs(rr - gr), abs(s - gs))
         dr, dc = abs(r - goal[0]), abs(c - goal[1])
         if movement == "Manhattan (4-Way)":
             return min_w * (dr + dc)
@@ -437,7 +500,37 @@ def solve(
 
         return primary, sec
 
-    if algo == "BFS" and movement == "Manhattan (4-Way)" and tie_breaker == "None":
+    if is_hex:
+        counter = 0
+        pq_hex: List[Tuple[float, float, int, Tuple[int, int, Optional[Tuple[int, int]]]]] = [
+            (heuristic(start[0], start[1]), 0.0, counter, start_key)
+        ]
+        while pq_hex:
+            if should_abort():
+                return
+            _, g, _, cur = heapq.heappop(pq_hex)
+            if round(g, 9) > round(best_score[cur][0], 9):
+                continue
+            r, c, _ = cur
+            if (r, c) not in explored_seen:
+                explored_seen.add((r, c))
+                explored_cells.append((r, c))
+            if (r, c) == goal:
+                goal_key = cur
+                final_cost = g
+                break
+            for nr, nc in hex_neighbors(r, c):
+                nxt_key = (nr, nc, None)
+                step_cost = 1.0 if algo == "BFS" else _cell_weight(board, weights, nr, nc)
+                ng = g + step_cost
+                prev = best_score.get(nxt_key)
+                if prev is None or round(ng, 9) < round(prev[0], 9):
+                    best_score[nxt_key] = (ng, 0.0)
+                    parent[nxt_key] = cur
+                    counter += 1
+                    f = ng + heuristic(nr, nc)
+                    heapq.heappush(pq_hex, (round(f, 9), ng, counter, nxt_key))
+    elif algo == "BFS" and movement == "Manhattan (4-Way)" and tie_breaker == "None":
         q = deque([start_key])
         while q:
             if should_abort():

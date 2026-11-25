@@ -12,9 +12,8 @@
 ### Frozen (0)
 - *(empty)*
 
-### Backlog (2)
+### Backlog (1)
 - **`V2-01`** Computer Vision Board Capture Input Adapter (OpenCV + OCR) — `Medium` | complex / performance / custom V3 (deps: V2-CORE)
-- **`V2-03`** Hexagonal & Weighted Terrain Mode in Maze Navigator — `Low` | complicated / performance / custom V3 (deps: V2-PORT)
 
 ### Todo (0)
 - *(empty)*
@@ -22,11 +21,12 @@
 ### In Progress (0) [WIP 0/1]
 - *(empty)*
 
-### Completed (4)
+### Completed (5)
 - **`V2-CORE`** Archive v1 PySide6 in Git & Flatten Repo to uv + FastAPI + HTML/JS — `High` | complicated / must-be / product V5
 - **`V2-UI`** Chalkboard & Midnight Plum Dual Theme System — `Medium` | clear / delighter / product V3 (deps: V2-CORE)
 - **`V2-PORT`** Port 13 Hub Plugins + Block Escape + Superking + Cipher/Morse Tools — `High` | complicated / performance / product V1 (deps: V2-CORE)
 - **`V2-02`** Polyomino / Pentomino DLX Exact Cover Solver — `Low` | complicated / performance / custom V3 (deps: V2-CORE)
+- **`V2-03`** Hexagonal & Weighted Terrain Mode in Maze Navigator — `Low` | complicated / performance / custom V3 (deps: V2-PORT)
 
 ## Index Table
 
@@ -37,4 +37,4 @@
 | `V2-PORT` | completed | High | complicated | performance | product | V1 | `tasks/V2-PORT.md` |
 | `V2-01` | backlog | Medium | complex | performance | custom | V3 | `tasks/V2-01.md` |
 | `V2-02` | completed | Low | complicated | performance | custom | V3 | `tasks/V2-02.md` |
-| `V2-03` | backlog | Low | complicated | performance | custom | V3 | `tasks/V2-03.md` |
+| `V2-03` | completed | Low | complicated | performance | custom | V3 | `tasks/V2-03.md` |

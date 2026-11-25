@@ -406,3 +406,36 @@ def test_polyomino_dlx_diagnostics_and_flip():
     assert len(aborted_steps) == 1
     assert aborted_steps[0]["type"] == "start"
 
+
+def test_hex_maze_weighted_and_unreachable():
+    entry = SOLVERS["maze_navigator"]
+    # Weighted hex board: direct path through 4x swamp (5) vs detour through empty (0)
+    hex_state = {
+        "geometry": "Hexagonal (6-Way)",
+        "board": [
+            [2, 5, 3],
+            [0, 0, 0],
+        ],
+    }
+    res_astar = run_solver_sync(entry, hex_state, {"algorithm": "A*", "geometry": "Hexagonal (6-Way)"})
+    assert res_astar["ok"] is True
+    assert res_astar["steps"][-1]["type"] == "solution"
+    assert res_astar["steps"][-1]["stats"]["cost"] < 5
+
+    res_bfs = run_solver_sync(entry, hex_state, {"algorithm": "BFS", "geometry": "Hexagonal (6-Way)"})
+    assert res_bfs["ok"] is True
+    assert res_bfs["steps"][-1]["stats"]["steps"] == 2
+
+    # Unreachable hex goal
+    blocked_hex = {
+        "geometry": "Hexagonal (6-Way)",
+        "board": [
+            [2, 1, 3],
+            [1, 1, 1],
+        ],
+    }
+    res_fail = run_solver_sync(entry, blocked_hex, {"algorithm": "A*", "geometry": "Hexagonal (6-Way)"})
+    assert res_fail["ok"] is True
+    assert res_fail["steps"][-1]["type"] == "failed"
+    assert "no path" in res_fail["steps"][-1]["desc"].lower()
+
