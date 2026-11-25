@@ -373,3 +373,36 @@ def test_rubiks_cube_diagnostics_and_abort():
     assert len(aborted_steps) == 1
     assert aborted_steps[0]["type"] == "start"
 
+
+def test_polyomino_dlx_diagnostics_and_flip():
+    entry = SOLVERS["polyomino_dlx"]
+
+    # Area mismatch -> failed cleanly
+    res_mismatch = run_solver_sync(
+        entry,
+        {
+            "board": [[0, 0], [0, 0]],
+            "pieces": {"I": [[0, 0], [1, 0], [2, 0]]},
+        },
+        {},
+    )
+    assert res_mismatch["ok"] is True
+    assert res_mismatch["steps"][-1]["type"] == "failed"
+    assert "area mismatch" in res_mismatch["steps"][-1]["desc"].lower()
+
+    # Asymmetric L-pentomino on 2x3 with 1 hole needs flip if mirrored:
+    # Actually 1x5 I-pentomino on 1x5 solves; unsolvable 2x5 with two L-pentominoes of same chirality vs flip
+    asymmetric_state = {
+        "board": [[0, 0, 0], [0, 0, -1]],
+        "pieces": {"F": [[0, 1], [0, 2], [1, 0], [1, 1], [2, 1]]},
+    }
+    res_no_sol = run_solver_sync(entry, asymmetric_state, {"allow_flip": False})
+    assert res_no_sol["ok"] is True
+    assert res_no_sol["steps"][-1]["type"] == "failed"
+
+    # Cooperative abort stops after start
+    first_preset = copy.deepcopy(next(iter(entry.meta["presets"].values())))
+    aborted_steps = list(entry.solve(first_preset, {}, lambda: True))
+    assert len(aborted_steps) == 1
+    assert aborted_steps[0]["type"] == "start"
+

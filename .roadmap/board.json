@@ -56,7 +56,7 @@
       "wardley": "custom"
     },
     {
-      "column": "backlog",
+      "column": "completed",
       "cynefin": "complicated",
       "dependencies": [
         "V2-CORE"
