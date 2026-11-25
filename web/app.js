@@ -500,6 +500,7 @@ const THEMES = [
   { id: "plum", label: "Theme: Plum" },
   { id: "slate", label: "Theme: Slate" },
   { id: "forge", label: "Theme: Forge" },
+  { id: "ramapillar", label: "Theme: Ramapillar" },
 ];
 
 function updateThemeFavicon() {

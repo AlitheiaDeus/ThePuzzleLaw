@@ -99,7 +99,7 @@ def main() -> None:
     parser.add_argument(
         "--theme",
         default="chalk",
-        choices=["chalk", "plum", "slate", "forge"],
+        choices=["chalk", "plum", "slate", "forge", "ramapillar"],
         help="Initial UI theme (default: chalk)",
     )
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open browser")

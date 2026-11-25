@@ -64,6 +64,21 @@
   --accent-warm: #FEF08A;
 }
 
+/* Ramapillar (Plum Ink / Cream / Sakura / Pastel Sky / Lilac) */
+:root[data-theme="ramapillar"] {
+  --bg-main: #180C1E;
+  --bg-panel: #22112B;
+  --bg-surface: #2E183A;
+  --bg-cell: #251330;
+  --border: #6E4A7E;
+  --text-main: #FDE4E1;
+  --text-muted: #C19ADA;
+  --accent-primary: #DF5088;
+  --accent-secondary: #CBDCF4;
+  --accent-hot: #F6BECC;
+  --accent-warm: #DEBBF5;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
