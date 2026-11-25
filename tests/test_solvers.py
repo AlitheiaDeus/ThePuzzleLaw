@@ -264,3 +264,25 @@ def test_liquid_sorter_variable_caps_tokens_and_validation():
         {"allow_split_colors": True},
     )
     assert res_split_bad["steps"][-1]["type"] == "failed"
+
+
+def test_urjo_coupled_clues_deduction():
+    from solvers.urjo import _propagate
+
+    board = [[0] * 6 for _ in range(6)]
+    clues = [[None] * 6 for _ in range(6)]
+    # Bottom-edge pattern: B at (4,0), R5 at (4,1), B2 at (5,1) -> 3 empty shared neighbors (5,0),(4,2),(5,2)
+    # B2 needs 1 more B in those 3 -> 2 R in those 3 -> R5 needs all 3 above it (3,0),(3,1),(3,2) to be R (2).
+    board[4][0] = 1
+    board[4][1] = 2
+    clues[4][1] = 5
+    board[5][1] = 1
+    clues[5][1] = 2
+
+    steps = []
+    ok = _propagate(board, clues, 6, 6, collector=steps)
+    assert ok is True
+    assert board[3][0] == 2
+    assert board[3][1] == 2
+    assert board[3][2] == 2
+    assert any("Coupled Clues" in reason for _, _, _, reason in steps)

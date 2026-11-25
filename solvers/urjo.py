@@ -202,6 +202,51 @@ def _propagate(
                             if collector is not None:
                                 collector.append((nr, nc, col, f"Clue ({r + 1},{c + 1})={k} Demands"))
                             changed = True
+
+        # 4. Coupled-clue overlap (subset & partial-overlap bounds)
+        constraints: List[Tuple[int, int, set[Tuple[int, int]], int]] = []
+        for r in range(rows):
+            for c in range(cols):
+                k = clues[r][c]
+                col = b[r][c]
+                if k is None or col == 0:
+                    continue
+                nbrs = _neighbors(r, c, rows, cols)
+                emp = {(nr, nc) for nr, nc in nbrs if b[nr][nc] == 0}
+                if not emp:
+                    continue
+                same = sum(1 for nr, nc in nbrs if b[nr][nc] == col)
+                need_same = k - same
+                need_blue = need_same if col == 1 else len(emp) - need_same
+                constraints.append((r, c, emp, need_blue))
+
+        forced_any = False
+        for ra, ca, ea, na in constraints:
+            for rb, cb, eb, nb in constraints:
+                if (ra, ca) == (rb, cb):
+                    continue
+                shared = ea & eb
+                rem_b = eb - shared
+                if not shared or not rem_b:
+                    continue
+                min_s = max(0, na - len(ea - shared))
+                max_s = min(len(shared), na)
+                min_rem = nb - max_s
+                max_rem = nb - min_s
+                if min_rem > len(rem_b) or max_rem < 0:
+                    return False
+                fill = 1 if min_rem == len(rem_b) else (2 if max_rem == 0 else 0)
+                if fill:
+                    reason = f"Coupled Clues ({ra + 1},{ca + 1}) & ({rb + 1},{cb + 1})"
+                    for nr, nc in sorted(rem_b):
+                        if b[nr][nc] == 0:
+                            b[nr][nc] = fill
+                            if collector is not None:
+                                collector.append((nr, nc, fill, reason))
+                            changed = True
+                            forced_any = True
+            if forced_any:
+                break
     return True
 
 
