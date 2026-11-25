@@ -142,28 +142,43 @@ def test_maze_geometries_and_tiebreakers():
         copy.deepcopy(wt),
         {"algorithm": "Dijkstra", "maze_type": "Tile Walls", "movement": "Diagonal Euclidean (8-Way)", "tie_breaker": "None"},
     )
-    res_arc = run_solver_sync(
-        entry,
-        copy.deepcopy(wt),
-        {"algorithm": "Dijkstra", "maze_type": "Tile Walls", "movement": "Quarter-Arc Corners", "tie_breaker": "None"},
-    )
     assert res_manhattan["steps"][-1]["type"] == "solution"
     assert res_diag["steps"][-1]["type"] == "solution"
-    assert res_arc["steps"][-1]["type"] == "solution"
     assert res_diag["steps"][-1]["stats"]["cost"] < res_manhattan["steps"][-1]["stats"]["cost"]
-    assert res_arc["steps"][-1]["stats"]["cost"] < res_manhattan["steps"][-1]["stats"]["cost"]
-    assert any(op["op"] == "A" for op in res_arc["steps"][-1]["highlights"]["path_svg"])
 
-    # Manhattan default with Quarter-Arc tie-breaker preserves Manhattan cost and adds SVG arcs
+    # Manhattan default with Corner Arc tie-breaker preserves Manhattan cost and adds SVG arcs
     base6 = copy.deepcopy(entry.meta["presets"]["6x6"])
     res_tb_arc = run_solver_sync(
         entry,
         base6,
-        {"algorithm": "A*", "maze_type": "Tile Walls", "movement": "Manhattan (4-Way)", "tie_breaker": "Quarter-Arc"},
+        {"algorithm": "A*", "maze_type": "Tile Walls", "movement": "Manhattan (4-Way)", "tie_breaker": "Corner Arc"},
     )
     assert res_tb_arc["steps"][-1]["type"] == "solution"
     assert res_tb_arc["steps"][-1]["stats"]["cost"] == 10
     assert any(op["op"] == "A" for op in res_tb_arc["steps"][-1]["highlights"]["path_svg"])
+
+    # Hexagonal Corner Arc & Euclidean tie-breakers emit path_svg ops (arcs vs chords)
+    hex_wt = copy.deepcopy(entry.meta["presets"]["Hex Weighted Terrain 7x7"])
+    res_hex_arc = run_solver_sync(
+        entry,
+        copy.deepcopy(hex_wt),
+        {"algorithm": "A*", "geometry": "Hexagonal (6-Way)", "tie_breaker": "Corner Arc"},
+    )
+    res_hex_euc = run_solver_sync(
+        entry,
+        copy.deepcopy(hex_wt),
+        {"algorithm": "A*", "geometry": "Hexagonal (6-Way)", "tie_breaker": "Euclidean"},
+    )
+    assert res_hex_arc["steps"][-1]["type"] == "solution"
+    assert res_hex_euc["steps"][-1]["type"] == "solution"
+    assert any(op["op"] == "A" for op in res_hex_arc["steps"][-1]["highlights"]["path_svg"])
+    assert all(op["op"] in ("M", "L") for op in res_hex_euc["steps"][-1]["highlights"]["path_svg"])
+
+    # Show Ties collects multiple equal-cost optimal paths on an open 3x3 grid
+    open_3x3 = {"board": [[2, 0, 0], [0, 0, 0], [0, 0, 3]]}
+    res_ties = run_solver_sync(entry, open_3x3, {"algorithm": "A*", "show_tied_paths": True})
+    assert len(res_ties["steps"][-1]["highlights"]["tied_paths"]) == 5
+    assert len(res_ties["steps"][-1]["highlights"]["tied_paths_svg"]) == 5
 
 
 def test_rectangular_resizing_and_unified_logs():
@@ -426,7 +441,7 @@ def test_hex_maze_weighted_and_unreachable():
     assert res_bfs["ok"] is True
     assert res_bfs["steps"][-1]["stats"]["steps"] == 2
 
-    # Unreachable hex goal
+    # Unreachable hex goal via tile walls
     blocked_hex = {
         "geometry": "Hexagonal (6-Way)",
         "board": [
@@ -438,4 +453,17 @@ def test_hex_maze_weighted_and_unreachable():
     assert res_fail["ok"] is True
     assert res_fail["steps"][-1]["type"] == "failed"
     assert "no path" in res_fail["steps"][-1]["desc"].lower()
+
+    # Unreachable hex goal via hex_walls (edge walls only, no tile walls)
+    edge_blocked_hex = {
+        "geometry": "Hexagonal (6-Way)",
+        "board": [
+            [2, 0, 3],
+            [0, 0, 0],
+        ],
+        "hex_walls": ["0,0|0,1", "0,0|1,0"],
+    }
+    res_edge_fail = run_solver_sync(entry, edge_blocked_hex, {"algorithm": "A*", "geometry": "Hexagonal (6-Way)"})
+    assert res_edge_fail["ok"] is True
+    assert res_edge_fail["steps"][-1]["type"] == "failed"
 

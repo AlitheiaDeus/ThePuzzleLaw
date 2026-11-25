@@ -306,6 +306,12 @@ function renderParams(solver, savedParams = null) {
               delete state.editState.v_walls;
             }
             if (!isPlaybackMode()) renderStage();
+          } else if (p.key === "geometry") {
+            const movWrap = els.dynamicParams.querySelector('[data-param-key="movement"]');
+            if (movWrap) {
+              movWrap.style.display = sel.value === "Hexagonal (6-Way)" ? "none" : "";
+            }
+            if (!isPlaybackMode()) renderStage();
           } else if (p.key === "num_colors" && !isPlaybackMode()) {
             renderStage();
           }
@@ -313,6 +319,10 @@ function renderParams(solver, savedParams = null) {
         saveDraft();
       });
       wrap.appendChild(sel);
+      wrap.dataset.paramKey = p.key;
+      if (solver.slug === "maze_navigator" && p.key === "movement" && state.params.geometry === "Hexagonal (6-Way)") {
+        wrap.style.display = "none";
+      }
     } else if (p.type === "bool") {
       const cb = document.createElement("input");
       cb.type = "checkbox";

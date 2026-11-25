@@ -503,6 +503,32 @@ export function renderGrid(stage, solver, renderState, highlights, editable, onE
     stage.appendChild(pBar);
   }
 
+  // Setup toggle for Maze Navigator Edge Borders (Tile + Edge walls can coexist)
+  if (canEdit && solver.slug === "maze_navigator") {
+    const mBar = document.createElement("div");
+    mBar.className = "grid-toolbar";
+    const hasEdges = Array.isArray(renderState.h_walls) && Array.isArray(renderState.v_walls);
+    const btnEdges = document.createElement("button");
+    btnEdges.className = "btn" + (hasEdges ? " btn-solve" : "");
+    btnEdges.textContent = hasEdges ? "Edge Borders: ON" : "Edge Borders: OFF";
+    btnEdges.title = "Toggle clickable border walls between cells (works alongside tile walls)";
+    btnEdges.addEventListener("click", () => {
+      const next = JSON.parse(JSON.stringify(renderState));
+      if (hasEdges) {
+        delete next.h_walls;
+        delete next.v_walls;
+        next.maze_type = "Tile Walls";
+      } else {
+        next.h_walls = Array.from({ length: rows + 1 }, () => Array(cols).fill(0));
+        next.v_walls = Array.from({ length: rows }, () => Array(cols + 1).fill(0));
+        next.maze_type = "Edge Walls";
+      }
+      onEdit(next);
+    });
+    mBar.appendChild(btnEdges);
+    stage.appendChild(mBar);
+  }
+
   // Optional brush toolbar for palette mode (Flood, Flow)
   if (mode === "palette" && canEdit) {
     const bar = document.createElement("div");
@@ -967,6 +993,34 @@ export function renderGrid(stage, solver, renderState, highlights, editable, onE
             svg.appendChild(hit);
           }
         }
+      }
+    }
+
+    // 1.5 Tied equal-cost paths (dimmed behind the winning path)
+    if (Array.isArray(highlights.tied_paths_svg) && highlights.tied_paths_svg.length > 0) {
+      for (const ops of highlights.tied_paths_svg) {
+        const dParts = [];
+        for (const op of ops) {
+          if (op.op === "M") {
+            dParts.push(`M ${gx(op.x).toFixed(2)} ${gy(op.y).toFixed(2)}`);
+          } else if (op.op === "L") {
+            dParts.push(`L ${gx(op.x).toFixed(2)} ${gy(op.y).toFixed(2)}`);
+          } else if (op.op === "A") {
+            const rad = (op.rx * (cellSize + 3)).toFixed(2);
+            dParts.push(`A ${rad} ${rad} 0 0 ${op.sweep} ${gx(op.x).toFixed(2)} ${gy(op.y).toFixed(2)}`);
+          }
+        }
+        const tEl = document.createElementNS(ns, "path");
+        tEl.setAttribute("d", dParts.join(" "));
+        tEl.setAttribute("fill", "none");
+        tEl.setAttribute("stroke", "var(--accent-secondary)");
+        tEl.setAttribute("stroke-opacity", "0.45");
+        tEl.setAttribute("stroke-dasharray", "5 4");
+        tEl.setAttribute("stroke-width", "2.5");
+        tEl.setAttribute("stroke-linecap", "round");
+        tEl.setAttribute("stroke-linejoin", "round");
+        tEl.style.pointerEvents = "none";
+        svg.appendChild(tEl);
       }
     }
 

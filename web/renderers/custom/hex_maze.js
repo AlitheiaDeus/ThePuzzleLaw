@@ -9,15 +9,56 @@ const BRUSHES = [
   { val: 5, label: "4× Swamp", color: "#61324A" },
 ];
 
-let activeHexBrush = 1;
+const HEX_EVEN_DIRS = [
+  [-1, -1],
+  [-1, 0],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+];
+const HEX_ODD_DIRS = [
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, 0],
+  [1, 1],
+];
 
-function hexPoints(cx, cy, radius) {
+let activeHexBrush = 1;
+let hexEditMode = "tiles"; // "tiles" | "edges"
+
+function hexEdgeKey(r1, c1, r2, c2) {
+  const first = r1 < r2 || (r1 === r2 && c1 < c2);
+  const [ar, ac, br, bc] = first ? [r1, c1, r2, c2] : [r2, c2, r1, c1];
+  return `${ar},${ac}|${br},${bc}`;
+}
+
+function hexVertices(cx, cy, radius) {
   const pts = [];
   for (let i = 0; i < 6; i++) {
     const angle = (Math.PI / 180) * (60 * i - 30);
-    pts.push(`${(cx + radius * Math.cos(angle)).toFixed(2)},${(cy + radius * Math.sin(angle)).toFixed(2)}`);
+    pts.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
   }
-  return pts.join(" ");
+  return pts;
+}
+
+function hexPointsStr(verts) {
+  return verts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+}
+
+function sharedSegment(vertsA, vertsB) {
+  // Find the two closest vertex pairs between adjacent hexes A and B
+  const pairs = [];
+  for (let i = 0; i < 6; i++) {
+    for (let j = 0; j < 6; j++) {
+      const d = Math.hypot(vertsA[i][0] - vertsB[j][0], vertsA[i][1] - vertsB[j][1]);
+      pairs.push({ d, pt: [(vertsA[i][0] + vertsB[j][0]) * 0.5, (vertsA[i][1] + vertsB[j][1]) * 0.5] });
+    }
+  }
+  pairs.sort((a, b) => a.d - b.d);
+  return [pairs[0].pt, pairs[1].pt];
 }
 
 function resizeBoard(board, nr, nc) {
@@ -43,6 +84,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
   const gm = solver.grid_meta || {};
   const colors = gm.colors || {};
   const labels = gm.labels || {};
+  const hexWalls = new Set(Array.isArray(renderState.hex_walls) ? renderState.hex_walls : []);
 
   const root = document.createElement("div");
   root.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px; width:100%;";
@@ -80,25 +122,58 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       })
     );
 
-    for (const b of BRUSHES) {
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      const selected = activeHexBrush === b.val;
-      btn.style.cssText = `
-        display:inline-flex; align-items:center; gap:5px; padding:4px 8px; font-size:12px;
-        border:2px solid ${selected ? "var(--accent-primary)" : "var(--border)"};
-      `;
-      const sw = document.createElement("span");
-      sw.style.cssText = `width:11px; height:11px; border-radius:3px; background:${colors[String(b.val)] || b.color};`;
-      const txt = document.createElement("span");
-      txt.textContent = b.label;
-      btn.appendChild(sw);
-      btn.appendChild(txt);
-      btn.addEventListener("click", () => {
-        activeHexBrush = b.val;
-        render(stage, solver, renderState, highlights, editable, onEdit);
+    // Setup mode toggle: Tiles vs Edges
+    const btnTiles = document.createElement("button");
+    btnTiles.className = "btn" + (hexEditMode === "tiles" ? " btn-solve" : "");
+    btnTiles.textContent = "Edit: Tiles";
+    btnTiles.addEventListener("click", () => {
+      hexEditMode = "tiles";
+      render(stage, solver, renderState, highlights, editable, onEdit);
+    });
+    bar.appendChild(btnTiles);
+
+    const btnEdges = document.createElement("button");
+    btnEdges.className = "btn" + (hexEditMode === "edges" ? " btn-solve" : "");
+    btnEdges.textContent = "Edit: Edges";
+    btnEdges.addEventListener("click", () => {
+      hexEditMode = "edges";
+      render(stage, solver, renderState, highlights, editable, onEdit);
+    });
+    bar.appendChild(btnEdges);
+
+    if (hexWalls.size > 0) {
+      const btnClearEdges = document.createElement("button");
+      btnClearEdges.className = "btn";
+      btnClearEdges.textContent = "Clear Edges";
+      btnClearEdges.addEventListener("click", () => {
+        const next = { ...renderState };
+        delete next.hex_walls;
+        onEdit(next);
       });
-      bar.appendChild(btn);
+      bar.appendChild(btnClearEdges);
+    }
+
+    if (hexEditMode === "tiles") {
+      for (const b of BRUSHES) {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        const selected = activeHexBrush === b.val;
+        btn.style.cssText = `
+          display:inline-flex; align-items:center; gap:5px; padding:4px 8px; font-size:12px;
+          border:2px solid ${selected ? "var(--accent-primary)" : "var(--border)"};
+        `;
+        const sw = document.createElement("span");
+        sw.style.cssText = `width:11px; height:11px; border-radius:3px; background:${colors[String(b.val)] || b.color};`;
+        const txt = document.createElement("span");
+        txt.textContent = b.label;
+        btn.appendChild(sw);
+        btn.appendChild(txt);
+        btn.addEventListener("click", () => {
+          activeHexBrush = b.val;
+          render(stage, solver, renderState, highlights, editable, onEdit);
+        });
+        bar.appendChild(btn);
+      }
     }
 
     root.appendChild(bar);
@@ -129,6 +204,13 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
   svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
   svg.style.cssText = `width:min(100%, ${svgW}px); height:auto; max-height:460px;`;
 
+  const vertsGrid = Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: cols }, (_, c) => {
+      const [cx, cy] = centerOf(r, c);
+      return hexVertices(cx, cy, radius - 1.5);
+    })
+  );
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const val = board[r][c];
@@ -136,11 +218,11 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       const isHi = hiSet.has(`${r},${c}`);
 
       const poly = document.createElementNS(svgNS, "polygon");
-      poly.setAttribute("points", hexPoints(cx, cy, radius - 1.5));
+      poly.setAttribute("points", hexPointsStr(vertsGrid[r][c]));
       poly.setAttribute("fill", colors[String(val)] || "#232629");
       poly.setAttribute("stroke", isHi ? hiColor : "var(--border)");
       poly.setAttribute("stroke-width", isHi ? "3" : "1.5");
-      if (editable) {
+      if (editable && hexEditMode === "tiles") {
         poly.style.cursor = "pointer";
         poly.addEventListener("click", () => {
           const nextBoard = board.map((row) => row.slice());
@@ -173,7 +255,115 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     }
   }
 
-  if (Array.isArray(highlights?.path) && highlights.path.length > 1) {
+  // Render interior hex edges (visible when blocked, and clickable when hexEditMode === "edges")
+  const drawnEdges = new Set();
+  for (let r = 0; r < rows; r++) {
+    const dirs = r % 2 === 1 ? HEX_ODD_DIRS : HEX_EVEN_DIRS;
+    for (let c = 0; c < cols; c++) {
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+        const key = hexEdgeKey(r, c, nr, nc);
+        if (drawnEdges.has(key)) continue;
+        drawnEdges.add(key);
+
+        const isWall = hexWalls.has(key);
+        const showInteractive = editable && hexEditMode === "edges";
+        if (!isWall && !showInteractive) continue;
+
+        const [p1, p2] = sharedSegment(vertsGrid[r][c], vertsGrid[nr][nc]);
+        if (isWall) {
+          const wallLine = document.createElementNS(svgNS, "line");
+          wallLine.setAttribute("x1", p1[0].toFixed(2));
+          wallLine.setAttribute("y1", p1[1].toFixed(2));
+          wallLine.setAttribute("x2", p2[0].toFixed(2));
+          wallLine.setAttribute("y2", p2[1].toFixed(2));
+          wallLine.setAttribute("stroke", "var(--accent-hot, #FF4D4D)");
+          wallLine.setAttribute("stroke-width", "5");
+          wallLine.setAttribute("stroke-linecap", "round");
+          wallLine.style.pointerEvents = "none";
+          svg.appendChild(wallLine);
+        }
+
+        if (showInteractive) {
+          const hit = document.createElementNS(svgNS, "line");
+          hit.setAttribute("x1", p1[0].toFixed(2));
+          hit.setAttribute("y1", p1[1].toFixed(2));
+          hit.setAttribute("x2", p2[0].toFixed(2));
+          hit.setAttribute("y2", p2[1].toFixed(2));
+          hit.setAttribute("stroke", isWall ? "transparent" : "rgba(255,255,255,0.12)");
+          hit.setAttribute("stroke-width", "9");
+          hit.setAttribute("stroke-linecap", "round");
+          hit.style.cursor = "pointer";
+          hit.addEventListener("click", () => {
+            const nextWalls = new Set(hexWalls);
+            if (nextWalls.has(key)) nextWalls.delete(key);
+            else nextWalls.add(key);
+            const nextState = { ...renderState };
+            if (nextWalls.size > 0) nextState.hex_walls = Array.from(nextWalls).sort();
+            else delete nextState.hex_walls;
+            onEdit(nextState);
+          });
+          svg.appendChild(hit);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(highlights?.tied_paths_svg) && highlights.tied_paths_svg.length > 0) {
+    const toPx = (nx, ny) => [pad + hexW * 0.5 + nx * hexW, pad + radius + ny * hexW];
+    for (const ops of highlights.tied_paths_svg) {
+      const d = ops
+        .map((op) => {
+          const [px, py] = toPx(op.x, op.y);
+          if (op.op === "M") return `M ${px.toFixed(2)} ${py.toFixed(2)}`;
+          if (op.op === "A") {
+            const rx = (op.rx * hexW).toFixed(2);
+            const ry = (op.ry * hexW).toFixed(2);
+            return `A ${rx} ${ry} 0 0 ${op.sweep} ${px.toFixed(2)} ${py.toFixed(2)}`;
+          }
+          return `L ${px.toFixed(2)} ${py.toFixed(2)}`;
+        })
+        .join(" ");
+      const tEl = document.createElementNS(svgNS, "path");
+      tEl.setAttribute("d", d);
+      tEl.setAttribute("fill", "none");
+      tEl.setAttribute("stroke", "var(--accent-secondary)");
+      tEl.setAttribute("stroke-opacity", "0.45");
+      tEl.setAttribute("stroke-dasharray", "5 4");
+      tEl.setAttribute("stroke-width", "2.5");
+      tEl.setAttribute("stroke-linecap", "round");
+      tEl.setAttribute("stroke-linejoin", "round");
+      tEl.style.pointerEvents = "none";
+      svg.appendChild(tEl);
+    }
+  }
+
+  if (Array.isArray(highlights?.path_svg) && highlights.path_svg.length > 0) {
+    const toPx = (nx, ny) => [pad + hexW * 0.5 + nx * hexW, pad + radius + ny * hexW];
+    const d = highlights.path_svg
+      .map((op) => {
+        const [px, py] = toPx(op.x, op.y);
+        if (op.op === "M") return `M ${px.toFixed(2)} ${py.toFixed(2)}`;
+        if (op.op === "A") {
+          const rx = (op.rx * hexW).toFixed(2);
+          const ry = (op.ry * hexW).toFixed(2);
+          return `A ${rx} ${ry} 0 0 ${op.sweep} ${px.toFixed(2)} ${py.toFixed(2)}`;
+        }
+        return `L ${px.toFixed(2)} ${py.toFixed(2)}`;
+      })
+      .join(" ");
+    const pathEl = document.createElementNS(svgNS, "path");
+    pathEl.setAttribute("d", d);
+    pathEl.setAttribute("fill", "none");
+    pathEl.setAttribute("stroke", "var(--accent-primary)");
+    pathEl.setAttribute("stroke-width", "3.5");
+    pathEl.setAttribute("stroke-linecap", "round");
+    pathEl.setAttribute("stroke-linejoin", "round");
+    pathEl.style.pointerEvents = "none";
+    svg.appendChild(pathEl);
+  } else if (Array.isArray(highlights?.path) && highlights.path.length > 1) {
     const polyline = document.createElementNS(svgNS, "polyline");
     const pts = highlights.path.map(([r, c]) => centerOf(r, c).join(",")).join(" ");
     polyline.setAttribute("points", pts);
