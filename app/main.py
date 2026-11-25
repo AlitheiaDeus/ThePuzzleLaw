@@ -81,10 +81,10 @@ def serve_index() -> FileResponse:
 
 @app.get("/favicon.ico", include_in_schema=False)
 def serve_favicon() -> FileResponse:
-    icon_path = WEB_DIR / "favicon.svg"
+    icon_path = WEB_DIR / "favicon.png"
     if not icon_path.exists():
-        raise HTTPException(status_code=404, detail="web/favicon.svg not found")
-    return FileResponse(icon_path, media_type="image/svg+xml")
+        raise HTTPException(status_code=404, detail="web/favicon.png not found")
+    return FileResponse(icon_path, media_type="image/png")
 
 
 if WEB_DIR.exists():
