@@ -502,11 +502,32 @@ const THEMES = [
   { id: "forge", label: "Theme: Forge" },
 ];
 
+function updateThemeFavicon() {
+  const link = document.querySelector('link[rel="icon"]');
+  if (!link) return;
+  const cs = getComputedStyle(document.documentElement);
+  const bg = cs.getPropertyValue("--bg-main").trim() || "#0F1412";
+  const border = cs.getPropertyValue("--border").trim() || "#3A4D45";
+  const c1 = cs.getPropertyValue("--accent-primary").trim() || "#00F5D4";
+  const c2 = cs.getPropertyValue("--accent-secondary").trim() || "#B5FF4D";
+  const c3 = cs.getPropertyValue("--accent-hot").trim() || "#FF4D80";
+  const c4 = cs.getPropertyValue("--accent-warm").trim() || "#FFB800";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">`
+    + `<rect x="1" y="1" width="30" height="30" rx="6" fill="${bg}" stroke="${border}" stroke-width="1.5"/>`
+    + `<path d="M 4 4 H 16 V 8 A 2.4 2.4 0 1 1 16 12.8 V 16 H 12.8 A 2.4 2.4 0 1 0 8 16 H 4 Z" fill="${c1}" stroke="${bg}" stroke-width="1.2" stroke-linejoin="round"/>`
+    + `<path d="M 16 4 H 28 V 16 H 24 A 2.4 2.4 0 1 1 19.2 16 H 16 V 12.8 A 2.4 2.4 0 1 0 16 8 Z" fill="${c2}" stroke="${bg}" stroke-width="1.2" stroke-linejoin="round"/>`
+    + `<path d="M 4 16 H 8 A 2.4 2.4 0 1 1 12.8 16 H 16 V 19.2 A 2.4 2.4 0 1 0 16 24 V 28 H 4 Z" fill="${c3}" stroke="${bg}" stroke-width="1.2" stroke-linejoin="round"/>`
+    + `<path d="M 16 16 H 19.2 A 2.4 2.4 0 1 0 24 16 H 28 V 28 H 16 V 24 A 2.4 2.4 0 1 1 16 19.2 Z" fill="${c4}" stroke="${bg}" stroke-width="1.2" stroke-linejoin="round"/>`
+    + `</svg>`;
+  link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+}
+
 function applyTheme(theme) {
   const found = THEMES.find((t) => t.id === theme) || THEMES[0];
   document.documentElement.setAttribute("data-theme", found.id);
   localStorage.setItem("tpl_theme", found.id);
   els.btnTheme.textContent = found.label;
+  updateThemeFavicon();
 }
 
 els.btnTheme.addEventListener("click", () => {
