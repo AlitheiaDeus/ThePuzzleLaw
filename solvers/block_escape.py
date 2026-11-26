@@ -469,6 +469,7 @@ def solve(
                 return False
         return True
 
+    use_swipe_dist = multi_step or blocks_info[t_id]["ice"]
     if search_mode in ("astar", "wastar", "greedy") or (not portal_masks and t_unchained):
         dq = deque([(target_anchor[0], target_anchor[1], 0)])
         seen_d = {target_anchor}
@@ -477,9 +478,17 @@ def solve(
             dist_map[cy * stride + cx] = cd
             for dx, dy in rev_dirs:
                 nx, ny = cx + dx, cy + dy
-                if (nx, ny) not in seen_d and _fits_at(nx, ny):
-                    seen_d.add((nx, ny))
-                    dq.append((nx, ny, cd + 1))
+                if use_swipe_dist:
+                    while _fits_at(nx, ny):
+                        if (nx, ny) not in seen_d:
+                            seen_d.add((nx, ny))
+                            dq.append((nx, ny, cd + 1))
+                        nx += dx
+                        ny += dy
+                else:
+                    if (nx, ny) not in seen_d and _fits_at(nx, ny):
+                        seen_d.add((nx, ny))
+                        dq.append((nx, ny, cd + 1))
 
     if not portal_masks and t_unchained and t_init_anchor not in seen_d:
         yield {
