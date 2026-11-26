@@ -158,13 +158,14 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     }
   }
 
-  const hl = highlights.edge;
+  const hlList = Array.isArray(highlights.edges) ? highlights.edges : (highlights.edge ? [highlights.edge] : []);
+  const isEdgeHl = (k, r, c) => hlList.some((e) => e[0] === k && e[1] === r && e[2] === c);
 
   // Horizontal edges
   for (let r = 0; r <= rows; r++) {
     for (let c = 0; c < cols; c++) {
       const st = hEdges[r]?.[c] || 0;
-      const isHl = hl && hl[0] === "h" && hl[1] === r && hl[2] === c;
+      const isHl = isEdgeHl("h", r, c);
       const line = document.createElementNS(ns, "line");
       line.setAttribute("x1", String(pad + c * cell));
       line.setAttribute("y1", String(pad + r * cell));
@@ -175,10 +176,10 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         st === 1
           ? (isHl ? "var(--accent-secondary)" : "var(--accent-primary)")
           : st === -1
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(255,255,255,0.16)",
+            ? (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.06)")
+            : (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.16)"),
       );
-      line.setAttribute("stroke-width", st === 1 ? "5" : "2");
+      line.setAttribute("stroke-width", st === 1 ? "5" : isHl ? "3" : "2");
       if (st === -1) line.setAttribute("stroke-dasharray", "3 5");
       line.setAttribute("stroke-linecap", "round");
       svg.appendChild(line);
@@ -207,7 +208,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c <= cols; c++) {
       const st = vEdges[r]?.[c] || 0;
-      const isHl = hl && hl[0] === "v" && hl[1] === r && hl[2] === c;
+      const isHl = isEdgeHl("v", r, c);
       const line = document.createElementNS(ns, "line");
       line.setAttribute("x1", String(pad + c * cell));
       line.setAttribute("y1", String(pad + r * cell));
@@ -218,10 +219,10 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         st === 1
           ? (isHl ? "var(--accent-secondary)" : "var(--accent-primary)")
           : st === -1
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(255,255,255,0.16)",
+            ? (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.06)")
+            : (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.16)"),
       );
-      line.setAttribute("stroke-width", st === 1 ? "5" : "2");
+      line.setAttribute("stroke-width", st === 1 ? "5" : isHl ? "3" : "2");
       if (st === -1) line.setAttribute("stroke-dasharray", "3 5");
       line.setAttribute("stroke-linecap", "round");
       svg.appendChild(line);

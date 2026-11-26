@@ -535,6 +535,12 @@ function clearBoardState(solver, curState) {
   if (Array.isArray(next.hex_walls)) {
     next.hex_walls = [];
   }
+  if (Array.isArray(next.faces)) {
+    next.faces = next.faces.map((f) => ({ ...f, clue: null }));
+  }
+  if (Array.isArray(next.edge_values)) {
+    next.edge_values = next.edge_values.map(() => 0);
+  }
   if (typeof next.terrain === "string" && typeof next.blocks === "string") {
     const rows = Array.isArray(next.board) ? next.board.length : 6;
     const cols = Array.isArray(next.board) && Array.isArray(next.board[0]) ? next.board[0].length : 6;
