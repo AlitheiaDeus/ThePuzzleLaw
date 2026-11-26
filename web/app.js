@@ -35,6 +35,7 @@ const els = {
   btnLast: document.getElementById("btn-last"),
   btnSolve: document.getElementById("btn-solve"),
   btnAbort: document.getElementById("btn-abort"),
+  btnClear: document.getElementById("btn-clear"),
   btnReset: document.getElementById("btn-reset"),
   btnTheme: document.getElementById("btn-theme"),
   btnLogs: document.getElementById("btn-logs"),
@@ -494,6 +495,79 @@ els.presetSelect.addEventListener("change", () => {
   renderParams(state.activeSolver, extractPresetParams(state.activeSolver, state.editState));
   saveDraft();
   renderStage();
+});
+
+function clearBoardState(solver, curState) {
+  const next = deepClone(curState || {});
+  const gm = solver?.grid_meta || {};
+  const emptyVal = gm.empty_val ?? 0;
+
+  if (Array.isArray(next.board)) {
+    next.board = next.board.map((row) =>
+      Array.isArray(row) ? row.map((v) => (typeof v === "string" ? "" : emptyVal)) : row
+    );
+  }
+  if (Array.isArray(next.clues)) {
+    next.clues = next.clues.map((row) => row.map(() => null));
+  }
+  if (Array.isArray(next.cell_clues)) {
+    next.cell_clues = next.cell_clues.map((row) => row.map(() => null));
+  }
+  if (Array.isArray(next.h_edges)) {
+    next.h_edges = next.h_edges.map((row) => row.map(() => 0));
+  }
+  if (Array.isArray(next.v_edges)) {
+    next.v_edges = next.v_edges.map((row) => row.map(() => 0));
+  }
+  if (Array.isArray(next.h_walls)) {
+    next.h_walls = next.h_walls.map((row) => row.map(() => 0));
+  }
+  if (Array.isArray(next.v_walls)) {
+    next.v_walls = next.v_walls.map((row) => row.map(() => 0));
+  }
+  if (Array.isArray(next.hex_walls)) {
+    next.hex_walls = [];
+  }
+  if (typeof next.terrain === "string" && typeof next.blocks === "string") {
+    const rows = Array.isArray(next.board) ? next.board.length : 6;
+    const cols = Array.isArray(next.board) && Array.isArray(next.board[0]) ? next.board[0].length : 6;
+    const emptyGrid = Array.from({ length: rows }, () => Array(cols).fill("o").join(" ")).join("\n");
+    next.terrain = emptyGrid;
+    next.blocks = emptyGrid;
+    next.chains = [];
+    delete next.pieces;
+  }
+  if (Array.isArray(next.tubes)) {
+    next.tubes = next.tubes.map(() => []);
+  }
+  if (next.faces && typeof next.faces === "object") {
+    const defaults = { U: "W", R: "R", F: "G", D: "Y", L: "O", B: "B" };
+    for (const f of Object.keys(defaults)) {
+      if (Array.isArray(next.faces[f])) {
+        next.faces[f] = next.faces[f].map((row) => row.map(() => defaults[f]));
+      }
+    }
+  }
+  if (Array.isArray(next.row_clues)) {
+    next.row_clues = next.row_clues.map(() => []);
+  }
+  if (Array.isArray(next.col_clues)) {
+    next.col_clues = next.col_clues.map(() => []);
+  }
+  for (const key of ["text", "ciphertext", "morse", "input"]) {
+    if (typeof next[key] === "string") next[key] = "";
+  }
+  return next;
+}
+
+els.btnClear.addEventListener("click", () => {
+  if (!state.activeSolver) return;
+  clearPlayback();
+  state.editState = clearBoardState(state.activeSolver, state.editState);
+  renderParams(state.activeSolver, extractPresetParams(state.activeSolver, state.editState));
+  saveDraft();
+  renderStage();
+  els.stepDescLive.textContent = "Cleared board for manual setup.";
 });
 
 els.btnReset.addEventListener("click", () => {
