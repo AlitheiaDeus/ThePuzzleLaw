@@ -140,6 +140,13 @@ function updateScrubTrack() {
   els.scrubTrack.style.background = `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
+function renderStats(stats) {
+  const statsEntries = Object.entries(stats || {});
+  els.stepStatsLive.innerHTML = statsEntries
+    .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
+    .join(" ");
+}
+
 function updateTransport() {
   const total = state.steps.length;
   els.scrubSlider.max = Math.max(0, total - 1);
@@ -162,10 +169,7 @@ function updateTransport() {
     els.modePill.title = "Click to exit playback and edit your board";
     const step = state.steps[state.stepIdx];
     els.stepDescLive.textContent = step.desc || "";
-    const statsEntries = Object.entries(step.stats || {});
-    els.stepStatsLive.innerHTML = statsEntries
-      .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
-      .join(" ");
+    renderStats(step.stats);
   } else {
     els.modePill.textContent = "EDIT";
     els.modePill.className = "mode-tag edit";
