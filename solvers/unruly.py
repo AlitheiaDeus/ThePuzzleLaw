@@ -63,7 +63,7 @@ def _propagate(
     cols: int,
     collector: Optional[List[Tuple[int, int, int, str]]] = None,
     unique_lines: bool = True,
-) -> bool:
+) -> Tuple[bool, str]:
     half_row = cols // 2
     half_col = rows // 2
     changed = True
@@ -71,10 +71,10 @@ def _propagate(
         changed = False
         for r in range(rows):
             if not _is_line_valid(b[r], half_row):
-                return False
+                return False, f"Row {r + 1} violates 3-in-a-row or N/2 quota"
         for c in range(cols):
             if not _is_line_valid([b[r][c] for r in range(rows)], half_col):
-                return False
+                return False, f"Col {c + 1} violates 3-in-a-row or N/2 quota"
 
         # Rows
         for r in range(rows):
@@ -162,6 +162,8 @@ def _propagate(
                                     collector.append((r, ec, opp, "Row Quota Triple Prevention"))
                                 changed = True
                                 break
+                    if changed:
+                        break
                 if changed:
                     break
         if changed:
@@ -185,6 +187,8 @@ def _propagate(
                                     collector.append((er, c, opp, "Col Quota Triple Prevention"))
                                 changed = True
                                 break
+                    if changed:
+                        break
                 if changed:
                     break
         if changed:
@@ -194,7 +198,7 @@ def _propagate(
         if unique_lines:
             full_rows = [tuple(b[r]) for r in range(rows) if 0 not in b[r]]
             if len(full_rows) != len(set(full_rows)):
-                return False
+                return False, "Duplicate completed rows (Unique Rows & Cols enabled)"
             for r in range(rows):
                 empties = [c for c in range(cols) if b[r][c] == 0]
                 if len(empties) == 2:
@@ -216,7 +220,7 @@ def _propagate(
             full_cols = [tuple(b[r][c] for r in range(rows)) for c in range(cols)]
             done_cols = [col for col in full_cols if 0 not in col]
             if len(done_cols) != len(set(done_cols)):
-                return False
+                return False, "Duplicate completed columns (Unique Rows & Cols enabled)"
             for c in range(cols):
                 col = full_cols[c]
                 empties = [r for r in range(rows) if col[r] == 0]
@@ -233,7 +237,7 @@ def _propagate(
                                 break
                     if changed:
                         break
-    return True
+    return True, ""
 
 
 def solve(
@@ -264,75 +268,104 @@ def solve(
         return
 
     logic_steps: List[Tuple[int, int, int, str]] = []
-    if not _propagate(board, rows, cols, collector=logic_steps, unique_lines=unique_lines):
-        yield {
-            "type": "failed",
-            "state": {"board": board},
-            "highlights": {},
-            "desc": "Pre-solve contradiction: initial givens violate 3-in-a-row or row/col N/2 quota.",
-            "stats": {},
-        }
-        return
+    ok, fail_reason = _propagate(board, rows, cols, collector=logic_steps, unique_lines=unique_lines)
 
     replay = [list(r) for r in state["board"]]
+    ded_count = 0
     for r, c, val, reason in logic_steps:
         if should_abort():
             return
         replay[r][c] = val
+        ded_count += 1
         yield {
             "type": "deduce",
             "state": {"board": [list(row) for row in replay], "unique_rows_cols": unique_lines},
             "highlights": {"cells": [[r, c]], "color": "primary"},
             "desc": f"{reason}: ({r + 1}, {c + 1}) = {'A' if val == 1 else 'B'}",
-            "stats": {"deductions": len(logic_steps)},
+            "stats": {"deductions": ded_count},
         }
 
-    branch_snapshots: List[Tuple[List[List[int]], int, int, int]] = []
+    if not ok:
+        yield {
+            "type": "failed",
+            "state": {"board": [list(row) for row in replay], "unique_rows_cols": unique_lines},
+            "highlights": {},
+            "desc": f"Contradiction: {fail_reason}.",
+            "stats": {"deductions": ded_count},
+        }
+        return
 
-    def backtrack(cur: List[List[int]]) -> Optional[List[List[int]]]:
+    stats = {"deductions": ded_count, "branches": 0, "backtracks": 0}
+    stalled_emitted = False
+
+    def backtrack_gen(cur: List[List[int]]) -> Generator[Dict[str, Any], None, Optional[List[List[int]]]]:
+        nonlocal stalled_emitted
         if should_abort():
             return None
         pos = next(((r, c) for r in range(rows) for c in range(cols) if cur[r][c] == 0), None)
         if pos is None:
             if unique_lines:
-                if len({tuple(r) for r in cur}) != rows:
-                    return None
-                if len({tuple(cur[r][c] for r in range(rows)) for c in range(cols)}) != cols:
+                if len({tuple(r) for r in cur}) != rows or len({tuple(cur[r][c] for r in range(rows)) for c in range(cols)}) != cols:
                     return None
             return cur
         er, ec = pos
         for cand in (1, 2):
+            if should_abort():
+                return None
+            stats["branches"] += 1
             nxt = [list(row) for row in cur]
             nxt[er][ec] = cand
-            if _propagate(nxt, rows, cols, unique_lines=unique_lines):
-                res = backtrack(nxt)
+            prefix = "Deduction stalled -> " if not stalled_emitted else ""
+            stalled_emitted = True
+            yield {
+                "type": "explore",
+                "state": {"board": [list(row) for row in nxt], "unique_rows_cols": unique_lines},
+                "highlights": {"cells": [[er, ec]], "color": "secondary"},
+                "desc": f"{prefix}Branch ({er + 1}, {ec + 1}) = {'A' if cand == 1 else 'B'}",
+                "stats": dict(stats),
+            }
+            sub_steps: List[Tuple[int, int, int, str]] = []
+            sub_ok, sub_err = _propagate(nxt, rows, cols, collector=sub_steps, unique_lines=unique_lines)
+            b_replay = [list(row) for row in cur]
+            b_replay[er][ec] = cand
+            for sr, sc, sval, sreason in sub_steps:
+                b_replay[sr][sc] = sval
+                stats["deductions"] += 1
+                yield {
+                    "type": "deduce",
+                    "state": {"board": [list(row) for row in b_replay], "unique_rows_cols": unique_lines},
+                    "highlights": {"cells": [[sr, sc]], "color": "primary"},
+                    "desc": f"{sreason}: ({sr + 1}, {sc + 1}) = {'A' if sval == 1 else 'B'}",
+                    "stats": dict(stats),
+                }
+            if sub_ok:
+                res = yield from backtrack_gen(nxt)
                 if res is not None:
-                    branch_snapshots.append(([list(row) for row in nxt], er, ec, cand))
                     return res
+            else:
+                stats["backtracks"] += 1
+                yield {
+                    "type": "backtrack",
+                    "state": {"board": [list(row) for row in cur], "unique_rows_cols": unique_lines},
+                    "highlights": {"cells": [[er, ec]], "color": "hot"},
+                    "desc": f"Contradiction ({sub_err}) -> backtrack ({er + 1}, {ec + 1})",
+                    "stats": dict(stats),
+                }
         return None
 
     solved_board = board
     if any(0 in row for row in board):
-        res = backtrack(board)
+        res = yield from backtrack_gen(board)
         if res is None:
             if not should_abort():
                 yield {
                     "type": "failed",
-                    "state": {"board": board},
+                    "state": {"board": board, "unique_rows_cols": unique_lines},
                     "highlights": {},
                     "desc": "No valid Unruly solution exists.",
-                    "stats": {},
+                    "stats": dict(stats),
                 }
             return
-        for idx, (snap_b, r, c, val) in enumerate(reversed(branch_snapshots)):
-            prefix = "Deduction stalled -> " if idx == 0 else ""
-            yield {
-                "type": "explore",
-                "state": {"board": snap_b, "unique_rows_cols": unique_lines},
-                "highlights": {"cells": [[r, c]], "color": "secondary"},
-                "desc": f"{prefix}Branch ({r + 1}, {c + 1}) = {'A' if val == 1 else 'B'}",
-                "stats": {},
-            }
         solved_board = res
 
     yield {
@@ -340,5 +373,5 @@ def solve(
         "state": {"board": solved_board, "unique_rows_cols": unique_lines},
         "highlights": {},
         "desc": "Unruly solved! All parity & run-length rules satisfied.",
-        "stats": {},
+        "stats": dict(stats),
     }
