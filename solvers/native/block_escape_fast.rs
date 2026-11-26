@@ -137,23 +137,39 @@ fn mix64(mut x: u64) -> u64 {
     x ^ (x >> 31)
 }
 
-fn hash_state(masks: &[Mask256], pending: u16) -> u64 {
+fn hash_state(anchors: &[u8], pending: u16) -> u64 {
     let mut h = mix64(pending as u64 ^ 0x9e3779b97f4a7c15);
-    for m in masks {
-        for &w in &m.0 {
-            if w != 0 {
-                h = mix64(h ^ w);
-            } else {
-                h = h.rotate_left(13) ^ 0x517cc1b727220a95;
-            }
+    let mut i = 0;
+    while i + 8 <= anchors.len() {
+        let chunk = u64::from_le_bytes([
+            anchors[i],
+            anchors[i + 1],
+            anchors[i + 2],
+            anchors[i + 3],
+            anchors[i + 4],
+            anchors[i + 5],
+            anchors[i + 6],
+            anchors[i + 7],
+        ]);
+        h = mix64(h ^ chunk);
+        i += 8;
+    }
+    if i < anchors.len() {
+        let mut tail = 0u64;
+        let mut shift = 0;
+        while i < anchors.len() {
+            tail |= (anchors[i] as u64) << shift;
+            shift += 8;
+            i += 1;
         }
+        h = mix64(h ^ tail);
     }
     h
 }
 
 struct StateTable {
     n_blocks: usize,
-    arena: Vec<Mask256>,
+    arena: Vec<u8>,
     pending: Vec<u16>, // u16::MAX = None, else group idx
     parent: Vec<u32>,
     move_code: Vec<u32>, // packed (g_idx << 16) | (ld_idx << 4) | kind
@@ -175,7 +191,7 @@ impl StateTable {
     }
 
     #[inline(always)]
-    fn get_masks(&self, sid: u32) -> &[Mask256] {
+    fn get_anchors(&self, sid: u32) -> &[u8] {
         let start = sid as usize * self.n_blocks;
         &self.arena[start..start + self.n_blocks]
     }
@@ -196,7 +212,7 @@ impl StateTable {
 
     fn insert_or_get(
         &mut self,
-        canon: &[Mask256],
+        canon: &[u8],
         pend: u16,
         par: u32,
         mcode: u32,
@@ -207,7 +223,7 @@ impl StateTable {
 
     fn insert_with_hash(
         &mut self,
-        canon: &[Mask256],
+        canon: &[u8],
         pend: u16,
         h: u64,
         par: u32,
@@ -232,7 +248,7 @@ impl StateTable {
             }
             if self.hashes[existing as usize] == h
                 && self.pending[existing as usize] == pend
-                && self.get_masks(existing) == canon
+                && self.get_anchors(existing) == canon
             {
                 return (existing, false);
             }
@@ -245,8 +261,8 @@ struct ExpandBuf {
     cur_masks: Vec<Mask256>,
     sim_masks: Vec<Mask256>,
     tele_masks: Vec<Mask256>,
-    cand_canon: Vec<Mask256>,
-    out_masks: Vec<Mask256>,
+    cand_canon: Vec<u8>,
+    out_anchors: Vec<u8>,
     out_meta: Vec<(u64, u32, u32, u16)>, // (hash, parent_sid, mcode, pend)
 }
 
@@ -256,24 +272,24 @@ impl ExpandBuf {
             cur_masks: vec![Mask256::default(); n_blocks],
             sim_masks: vec![Mask256::default(); n_blocks],
             tele_masks: vec![Mask256::default(); n_blocks],
-            cand_canon: vec![Mask256::default(); n_blocks],
-            out_masks: Vec::with_capacity(n_blocks * 64),
+            cand_canon: vec![0u8; n_blocks],
+            out_anchors: Vec::with_capacity(n_blocks * 64),
             out_meta: Vec::with_capacity(64),
         }
     }
 }
 
 #[inline(always)]
-fn canonicalize_slice(raw: &[Mask256], out: &mut [Mask256], canon_classes: &[Vec<usize>]) {
+fn canonicalize_masks_to_anchors(raw: &[Mask256], out: &mut [u8], canon_classes: &[Vec<usize>]) {
     let mut p = 0;
     for cls in canon_classes {
         if cls.len() == 1 {
-            out[p] = raw[cls[0]];
+            out[p] = raw[cls[0]].lowest_bit_idx() as u8;
             p += 1;
         } else {
             let start = p;
             for &bid in cls {
-                out[p] = raw[bid];
+                out[p] = raw[bid].lowest_bit_idx() as u8;
                 p += 1;
             }
             out[start..p].sort_unstable();
@@ -282,11 +298,16 @@ fn canonicalize_slice(raw: &[Mask256], out: &mut [Mask256], canon_classes: &[Vec
 }
 
 #[inline(always)]
-fn uncanonicalize_slice(ck: &[Mask256], raw: &mut [Mask256], canon_classes: &[Vec<usize>]) {
+fn uncanonicalize_anchors_to_masks(
+    ck: &[u8],
+    raw: &mut [Mask256],
+    base_shapes: &[Mask256],
+    canon_classes: &[Vec<usize>],
+) {
     let mut p = 0;
     for cls in canon_classes {
         for &bid in cls {
-            raw[bid] = ck[p];
+            raw[bid] = base_shapes[bid].shl(ck[p] as u32);
             p += 1;
         }
     }
@@ -298,30 +319,31 @@ fn push_cand(
     pend_val: u16,
     cur_sid: u32,
     mcode: u32,
-    cand_canon: &mut [Mask256],
+    cand_canon: &mut [u8],
     canon_classes: &[Vec<usize>],
-    out_masks: &mut Vec<Mask256>,
+    out_anchors: &mut Vec<u8>,
     out_meta: &mut Vec<(u64, u32, u32, u16)>,
 ) {
-    canonicalize_slice(masks_slice, cand_canon, canon_classes);
+    canonicalize_masks_to_anchors(masks_slice, cand_canon, canon_classes);
     let h = hash_state(cand_canon, pend_val);
-    out_masks.extend_from_slice(cand_canon);
+    out_anchors.extend_from_slice(cand_canon);
     out_meta.push((h, cur_sid, mcode, pend_val));
 }
 
 fn expand_state_into(
-    ck: &[Mask256],
+    ck: &[u8],
     cur_sid: u32,
     cur_pend: u16,
     wall_mask: Mask256,
     board_mask: Mask256,
+    base_shapes: &[Mask256],
     portals: &[(Mask256, Mask256)],
     groups: &[GroupSpec],
     canon_classes: &[Vec<usize>],
     glitches_allowed: bool,
     buf: &mut ExpandBuf,
 ) {
-    uncanonicalize_slice(ck, &mut buf.cur_masks, canon_classes);
+    uncanonicalize_anchors_to_masks(ck, &mut buf.cur_masks, base_shapes, canon_classes);
     let mut total_occ = Mask256::default();
     for &m in &buf.cur_masks {
         total_occ = total_occ.or(m);
@@ -377,7 +399,7 @@ fn expand_state_into(
                         mcode,
                         &mut buf.cand_canon,
                         canon_classes,
-                        &mut buf.out_masks,
+                        &mut buf.out_anchors,
                         &mut buf.out_meta,
                     );
                 }
@@ -454,7 +476,7 @@ fn expand_state_into(
                         mcode2,
                         &mut buf.cand_canon,
                         canon_classes,
-                        &mut buf.out_masks,
+                        &mut buf.out_anchors,
                         &mut buf.out_meta,
                     );
                     if glitches_allowed {
@@ -466,7 +488,7 @@ fn expand_state_into(
                             mcode3,
                             &mut buf.cand_canon,
                             canon_classes,
-                            &mut buf.out_masks,
+                            &mut buf.out_anchors,
                             &mut buf.out_meta,
                         );
                     }
@@ -481,7 +503,7 @@ fn expand_state_into(
                 mcode1,
                 &mut buf.cand_canon,
                 canon_classes,
-                &mut buf.out_masks,
+                &mut buf.out_anchors,
                 &mut buf.out_meta,
             );
         }
@@ -584,9 +606,15 @@ fn main() {
         }
     }
 
+    let base_shapes: Vec<Mask256> = init_masks
+        .iter()
+        .map(|&m| m.shr(m.lowest_bit_idx() as u32))
+        .collect();
+    let target_anchor_u8: u8 = target_mask.lowest_bit_idx() as u8;
+
     let mut table = StateTable::new(n_blocks);
-    let mut init_canon = vec![Mask256::default(); n_blocks];
-    canonicalize_slice(&init_masks, &mut init_canon, &canon_classes);
+    let mut init_canon = vec![0u8; n_blocks];
+    canonicalize_masks_to_anchors(&init_masks, &mut init_canon, &canon_classes);
     let (init_sid, _) = table.insert_or_get(&init_canon, u16::MAX, u32::MAX, 0);
 
     let mut solved_sid: Option<u32> = None;
@@ -599,7 +627,7 @@ fn main() {
         let h_weight: u32 = if search_mode == "wastar" { 3 } else { 1 };
         let mut g_scores = vec![u32::MAX; 1];
         g_scores[0] = 0;
-        let h0 = dist_map[init_canon[t_canon_idx].lowest_bit_idx()] * h_weight;
+        let h0 = dist_map[init_canon[t_canon_idx] as usize] * h_weight;
         let mut heap: BinaryHeap<Reverse<(u32, u32, u32)>> = BinaryHeap::new();
         heap.push(Reverse((h0, 0, init_sid)));
         let mut buf = ExpandBuf::new(n_blocks);
@@ -610,8 +638,8 @@ fn main() {
             }
             let cur_pend = table.pending[cur_sid as usize];
             {
-                let ck = table.get_masks(cur_sid);
-                if cur_pend == u16::MAX && ck[t_canon_idx] == target_mask {
+                let ck = table.get_anchors(cur_sid);
+                if cur_pend == u16::MAX && ck[t_canon_idx] == target_anchor_u8 {
                     solved_sid = Some(cur_sid);
                     break;
                 }
@@ -623,16 +651,17 @@ fn main() {
                 let _ = out.flush();
             }
 
-            buf.out_masks.clear();
+            buf.out_anchors.clear();
             buf.out_meta.clear();
             {
-                let ck = table.get_masks(cur_sid);
+                let ck = table.get_anchors(cur_sid);
                 expand_state_into(
                     ck,
                     cur_sid,
                     cur_pend,
                     wall_mask,
                     board_mask,
+                    &base_shapes,
                     &portals,
                     &groups,
                     &canon_classes,
@@ -643,7 +672,7 @@ fn main() {
 
             let nxt_g = cur_g + 1;
             for (idx, &(h, _, mcode, pend_val)) in buf.out_meta.iter().enumerate() {
-                let cand = &buf.out_masks[idx * n_blocks..(idx + 1) * n_blocks];
+                let cand = &buf.out_anchors[idx * n_blocks..(idx + 1) * n_blocks];
                 let (nsid, is_new) = table.insert_with_hash(cand, pend_val, h, cur_sid, mcode);
                 if is_new {
                     g_scores.push(nxt_g);
@@ -654,7 +683,7 @@ fn main() {
                 } else {
                     continue;
                 }
-                let heur = dist_map[cand[t_canon_idx].lowest_bit_idx()];
+                let heur = dist_map[cand[t_canon_idx] as usize];
                 let f = if is_greedy { heur } else { nxt_g + heur * h_weight };
                 heap.push(Reverse((f, nxt_g, nsid)));
             }
@@ -671,9 +700,8 @@ fn main() {
         let mut seq_buf = ExpandBuf::new(n_blocks);
 
         while level_start < level_end {
-            // Check goal across current frontier in ascending sid order
             for sid in level_start..level_end {
-                if table.pending[sid] == u16::MAX && table.get_masks(sid as u32)[t_canon_idx] == target_mask {
+                if table.pending[sid] == u16::MAX && table.get_anchors(sid as u32)[t_canon_idx] == target_anchor_u8 {
                     solved_sid = Some(sid as u32);
                     break;
                 }
@@ -693,10 +721,10 @@ fn main() {
 
                 let batch_len = batch_end - batch_start;
                 if n_threads <= 1 || batch_len < 64 {
-                    seq_buf.out_masks.clear();
+                    seq_buf.out_anchors.clear();
                     seq_buf.out_meta.clear();
                     for sid in batch_start..batch_end {
-                        let ck = table.get_masks(sid as u32);
+                        let ck = table.get_anchors(sid as u32);
                         let pend = table.pending[sid];
                         expand_state_into(
                             ck,
@@ -704,6 +732,7 @@ fn main() {
                             pend,
                             wall_mask,
                             board_mask,
+                            &base_shapes,
                             &portals,
                             &groups,
                             &canon_classes,
@@ -712,13 +741,14 @@ fn main() {
                         );
                     }
                     for (idx, &(h, par_sid, mcode, pend_val)) in seq_buf.out_meta.iter().enumerate() {
-                        let cand = &seq_buf.out_masks[idx * n_blocks..(idx + 1) * n_blocks];
+                        let cand = &seq_buf.out_anchors[idx * n_blocks..(idx + 1) * n_blocks];
                         table.insert_with_hash(cand, pend_val, h, par_sid, mcode);
                     }
                 } else {
                     let workers = n_threads.min(batch_len / 16).max(1);
                     let chunk = (batch_len + workers - 1) / workers;
                     let table_ref = &table;
+                    let shapes_ref = &base_shapes;
                     let portals_ref = &portals;
                     let groups_ref = &groups;
                     let classes_ref = &canon_classes;
@@ -734,7 +764,7 @@ fn main() {
                             handles.push(s.spawn(move || {
                                 let mut wbuf = ExpandBuf::new(n_blocks);
                                 for sid in ws..we {
-                                    let ck = table_ref.get_masks(sid as u32);
+                                    let ck = table_ref.get_anchors(sid as u32);
                                     let pend = table_ref.pending[sid];
                                     expand_state_into(
                                         ck,
@@ -742,6 +772,7 @@ fn main() {
                                         pend,
                                         wall_mask,
                                         board_mask,
+                                        shapes_ref,
                                         portals_ref,
                                         groups_ref,
                                         classes_ref,
@@ -757,7 +788,7 @@ fn main() {
 
                     for wbuf in &worker_outputs {
                         for (idx, &(h, par_sid, mcode, pend_val)) in wbuf.out_meta.iter().enumerate() {
-                            let cand = &wbuf.out_masks[idx * n_blocks..(idx + 1) * n_blocks];
+                            let cand = &wbuf.out_anchors[idx * n_blocks..(idx + 1) * n_blocks];
                             table.insert_with_hash(cand, pend_val, h, par_sid, mcode);
                         }
                     }
@@ -782,7 +813,7 @@ fn main() {
         let _ = writeln!(out, "SOL {} {}", steps.len(), table.pending.len());
         let mut raw = vec![Mask256::default(); n_blocks];
         for (sid, mcode) in steps {
-            uncanonicalize_slice(table.get_masks(sid), &mut raw, &canon_classes);
+            uncanonicalize_anchors_to_masks(table.get_anchors(sid), &mut raw, &base_shapes, &canon_classes);
             let hexes: Vec<String> = raw.iter().map(|m| m.to_hex()).collect();
             let _ = writeln!(out, "{} {}", mcode, hexes.join(" "));
         }
