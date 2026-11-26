@@ -271,18 +271,20 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       }
     } else {
       const tok = overrideToken || activeBrush;
-      const brushDef = BRUSHES.find((b) => b.token === tok || b.token === tok[0]) || BRUSHES[0];
-      if (brushDef.kind === "erase") {
-        nt[r][c] = "o";
-        nb[r][c] = "o";
-      } else if (brushDef.kind === "terrain" || isPortalToken(tok)) {
+      if (isPortalToken(tok)) {
         nt[r][c] = tok;
-        // Zones (T, A1/B1...) can be drawn under existing tiles; walls clear tiles
-        if (tok === "x") nb[r][c] = "o";
       } else {
-        nb[r][c] = tok;
-        // Placing a block clears walls, but preserves zones (T, A, B) underneath
-        if (nt[r][c] === "x") nt[r][c] = "o";
+        const brushDef = BRUSHES.find((b) => b.token === tok || b.token === tok[0]) || BRUSHES[0];
+        if (brushDef.kind === "erase") {
+          nt[r][c] = "o";
+          nb[r][c] = "o";
+        } else if (brushDef.kind === "terrain") {
+          nt[r][c] = tok;
+          if (tok === "x") nb[r][c] = "o";
+        } else {
+          nb[r][c] = tok;
+          if (nt[r][c] === "x") nt[r][c] = "o";
+        }
       }
     }
 
