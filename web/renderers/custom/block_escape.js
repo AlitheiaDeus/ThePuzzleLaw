@@ -706,7 +706,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           zLbl.style.zIndex = "1";
         }
         cell.appendChild(zLbl);
-      } else if (isPortalToken(tTok) || isPortalToken(val)) {
+      } else if (isPortalToken(tTok) || (pk === null && isPortalToken(val))) {
         const pName = isPortalToken(tTok) ? tTok : val;
         const [pBg, pBorder, pCol] = portalStyle(pName);
         cell.style.background = pBg;
@@ -886,7 +886,8 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           board.map((row, rr) =>
             row.map((cellVal, cc) => {
               const s = String(cellVal || "");
-              if (!s || s === "#" || s === "★" || isPortalToken(s)) return "o";
+              const hasPiece = pieces ? pieces[rr][cc] >= 0 : (bMat[rr]?.[cc] && bMat[rr][cc] !== "o");
+              if (!s || s === "#" || s === "★" || (!hasPiece && isPortalToken(s))) return "o";
               return s.toLowerCase();
             })
           )
