@@ -62,6 +62,7 @@ def _propagate(
     rows: int,
     cols: int,
     collector: Optional[List[Tuple[int, int, int, str]]] = None,
+    unique_lines: bool = True,
 ) -> bool:
     half_row = cols // 2
     half_col = rows // 2
@@ -139,6 +140,99 @@ def _propagate(
                         if collector is not None:
                             collector.append((r, c, fill, "Col Balance"))
                         changed = True
+
+        if changed:
+            continue
+
+        # Quota Lookahead (1 remaining of color v -> placing v must not force triple of 3-v in remaining empties)
+        for r in range(rows):
+            empties = [c for c in range(cols) if b[r][c] == 0]
+            if len(empties) >= 3:
+                for v in (1, 2):
+                    need_v = half_row - b[r].count(v)
+                    if need_v == 1:
+                        opp = 3 - v
+                        for ec in empties:
+                            test = list(b[r])
+                            for c2 in empties:
+                                test[c2] = v if c2 == ec else opp
+                            if not _is_line_valid(test, half_row):
+                                b[r][ec] = opp
+                                if collector is not None:
+                                    collector.append((r, ec, opp, "Row Quota Triple Prevention"))
+                                changed = True
+                                break
+                if changed:
+                    break
+        if changed:
+            continue
+
+        for c in range(cols):
+            col = [b[r][c] for r in range(rows)]
+            empties = [r for r in range(rows) if col[r] == 0]
+            if len(empties) >= 3:
+                for v in (1, 2):
+                    need_v = half_col - col.count(v)
+                    if need_v == 1:
+                        opp = 3 - v
+                        for er in empties:
+                            test = list(col)
+                            for r2 in empties:
+                                test[r2] = v if r2 == er else opp
+                            if not _is_line_valid(test, half_col):
+                                b[er][c] = opp
+                                if collector is not None:
+                                    collector.append((er, c, opp, "Col Quota Triple Prevention"))
+                                changed = True
+                                break
+                if changed:
+                    break
+        if changed:
+            continue
+
+        # Unique Rows & Cols Elimination
+        if unique_lines:
+            full_rows = [tuple(b[r]) for r in range(rows) if 0 not in b[r]]
+            if len(full_rows) != len(set(full_rows)):
+                return False
+            for r in range(rows):
+                empties = [c for c in range(cols) if b[r][c] == 0]
+                if len(empties) == 2:
+                    c1, c2 = empties
+                    for fr in full_rows:
+                        if all(b[r][k] == fr[k] for k in range(cols) if k not in (c1, c2)):
+                            if fr[c1] != fr[c2]:
+                                b[r][c1], b[r][c2] = fr[c2], fr[c1]
+                                if collector is not None:
+                                    collector.append((r, c1, b[r][c1], "Unique Row Elimination"))
+                                    collector.append((r, c2, b[r][c2], "Unique Row Elimination"))
+                                changed = True
+                                break
+                    if changed:
+                        break
+            if changed:
+                continue
+
+            full_cols = [tuple(b[r][c] for r in range(rows)) for c in range(cols)]
+            done_cols = [col for col in full_cols if 0 not in col]
+            if len(done_cols) != len(set(done_cols)):
+                return False
+            for c in range(cols):
+                col = full_cols[c]
+                empties = [r for r in range(rows) if col[r] == 0]
+                if len(empties) == 2:
+                    r1, r2 = empties
+                    for fc in done_cols:
+                        if all(col[k] == fc[k] for k in range(rows) if k not in (r1, r2)):
+                            if fc[r1] != fc[r2]:
+                                b[r1][c], b[r2][c] = fc[r2], fc[r1]
+                                if collector is not None:
+                                    collector.append((r1, c, b[r1][c], "Unique Col Elimination"))
+                                    collector.append((r2, c, b[r2][c], "Unique Col Elimination"))
+                                changed = True
+                                break
+                    if changed:
+                        break
     return True
 
 
@@ -170,7 +264,7 @@ def solve(
         return
 
     logic_steps: List[Tuple[int, int, int, str]] = []
-    if not _propagate(board, rows, cols, collector=logic_steps):
+    if not _propagate(board, rows, cols, collector=logic_steps, unique_lines=unique_lines):
         yield {
             "type": "failed",
             "state": {"board": board},
@@ -210,7 +304,7 @@ def solve(
         for cand in (1, 2):
             nxt = [list(row) for row in cur]
             nxt[er][ec] = cand
-            if _propagate(nxt, rows, cols):
+            if _propagate(nxt, rows, cols, unique_lines=unique_lines):
                 res = backtrack(nxt)
                 if res is not None:
                     branch_snapshots.append(([list(row) for row in nxt], er, ec, cand))

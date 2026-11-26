@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import combinations
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 META: Dict[str, Any] = {
@@ -292,6 +293,53 @@ def _propagate(
                             forced_any = True
             if forced_any:
                 break
+
+        if changed:
+            continue
+
+        # 5. Adjacent line disparity lookahead (up to 4 empties)
+        def deduce_line_disparity(line: List[int], ref: List[int], half: int, is_row: bool, line_idx: int) -> bool:
+            if 0 in ref:
+                return False
+            empties = [i for i, v in enumerate(line) if v == 0]
+            if not (1 <= len(empties) <= 4):
+                return False
+            need_1 = half - line.count(1)
+            if need_1 < 0 or need_1 > len(empties):
+                return False
+            valid_assigns: List[Dict[int, int]] = []
+            for ones_pos in combinations(empties, need_1):
+                ones_set = set(ones_pos)
+                cand = [1 if i in ones_set else (2 if line[i] == 0 else line[i]) for i in range(len(line))]
+                if cand != ref:
+                    valid_assigns.append({i: cand[i] for i in empties})
+            if not valid_assigns:
+                return True  # signal contradiction? handled by caller if needed
+            did = False
+            for pos in empties:
+                vals = {a[pos] for a in valid_assigns}
+                if len(vals) == 1:
+                    v = next(iter(vals))
+                    rr, cc = (line_idx, pos) if is_row else (pos, line_idx)
+                    if b[rr][cc] == 0:
+                        b[rr][cc] = v
+                        if collector is not None:
+                            collector.append((rr, cc, v, f"Adjacent {'Row' if is_row else 'Col'} Disparity Lookahead"))
+                        did = True
+            return did
+
+        for r in range(rows - 1):
+            if deduce_line_disparity(b[r], b[r + 1], half_row, True, r):
+                changed = True
+            if deduce_line_disparity(b[r + 1], b[r], half_row, True, r + 1):
+                changed = True
+        for c in range(cols - 1):
+            col1 = [b[r][c] for r in range(rows)]
+            col2 = [b[r][c + 1] for r in range(rows)]
+            if deduce_line_disparity(col1, col2, half_col, False, c):
+                changed = True
+            if deduce_line_disparity(col2, col1, half_col, False, c + 1):
+                changed = True
     return True
 
 

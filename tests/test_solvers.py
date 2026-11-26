@@ -467,3 +467,146 @@ def test_hex_maze_weighted_and_unreachable():
     assert res_edge_fail["ok"] is True
     assert res_edge_fail["steps"][-1]["type"] == "failed"
 
+
+def test_block_escape_distinct_touching_greens_and_search_modes():
+    entry = SOLVERS["block_escape"]
+    # g1 (2x1) and g2 (1x1) touch each other; if merged, g1+g2 could not clear the way for t to reach T.
+    state = {
+        "terrain": (
+            "o o o o\n"
+            "o o o T\n"
+            "o o o o"
+        ),
+        "blocks": (
+            "o  g1 g1 o\n"
+            "t  g2 o  o\n"
+            "o  o  o  o"
+        ),
+        "chains": [],
+    }
+    for mode in ("bfs", "astar", "greedy"):
+        res = run_solver_sync(entry, state, {"search_mode": mode})
+        assert res["ok"] is True
+        assert res["steps"][-1]["type"] == "solution"
+        pieces = res["steps"][0]["state"]["pieces"]
+        # g1 cells share the same piece id, distinct from g2's piece id
+        assert pieces[0][1] == pieces[0][2] >= 0
+        assert pieces[1][1] >= 0
+        assert pieces[0][1] != pieces[1][1]
+
+
+def test_block_escape_target_dirs_and_portal_glitches():
+    entry = SOLVERS["block_escape"]
+    # Horizontal-only target 'tr' cannot move vertically to reach T above it
+    blocked_dir = {
+        "terrain": "o T\no o",
+        "blocks": "o o\no tr",
+        "chains": [],
+    }
+    res_fail = run_solver_sync(entry, blocked_dir, {})
+    assert res_fail["steps"][-1]["type"] == "failed"
+
+    # Portal skip: A at (2,1) and (1,2), T at (3,1).
+    # Normal mode must teleport to (1,2), Tap back to (2,1), then slide to T (3 moves).
+    # With glitches_allowed=True it can skip A on the first slide and reach T in 2 moves.
+    glitch_state = {
+        "terrain": "o A T\nA x x",
+        "blocks": "tr o o\no o o",
+        "chains": [],
+    }
+    res_normal = run_solver_sync(entry, glitch_state, {"glitches_allowed": False})
+    assert res_normal["steps"][-1]["type"] == "solution"
+    assert res_normal["steps"][-1]["stats"]["moves"] == 3
+
+    res_glitch = run_solver_sync(entry, glitch_state, {"glitches_allowed": True})
+    assert res_glitch["steps"][-1]["type"] == "solution"
+    assert res_glitch["steps"][-1]["stats"]["moves"] == 2
+
+    # Chained tiles strictly bound, but can use portals to displace relative parity
+    chained_portal = {
+        "terrain": (
+            "o A o o\n"
+            "o o o A\n"
+            "o o o T"
+        ),
+        "blocks": (
+            "g1 o  o  o\n"
+            "t  o  o  o\n"
+            "o  o  o  o"
+        ),
+        "chains": [[["t", "g1"], "same"]],
+    }
+    # Without portal, t is 1 row below g1 and cannot reach (4,3) while g1 stays in bounds;
+    # sliding right puts g1 onto A(2,1) -> teleports to A(4,2), displacing parity so t can reach T(4,3)!
+    res_chain = run_solver_sync(entry, chained_portal, {})
+    assert res_chain["steps"][-1]["type"] == "solution"
+
+    # Numbered portal pairs (A1<->B1, A2<->B2) + wastar search mode + directional unreachable fast-fail
+    numbered_portals = {
+        "terrain": (
+            "o A1 x o\n"
+            "B1 A2 x B2\n"
+            "o o  x T"
+        ),
+        "blocks": (
+            "t o o o\n"
+            "o o o o\n"
+            "o o o o"
+        ),
+        "chains": [],
+    }
+    res_np = run_solver_sync(entry, numbered_portals, {"search_mode": "wastar"})
+    assert res_np["steps"][-1]["type"] == "solution"
+
+    unreachable_dir = {
+        "terrain": "o T\no o",
+        "blocks": "o o\no ts",
+        "chains": [],
+    }
+    res_unreach = run_solver_sync(entry, unreachable_dir, {})
+    assert res_unreach["steps"][-1]["type"] == "failed"
+    assert "reach goal" in res_unreach["steps"][-1]["desc"].lower()
+
+
+def test_rubiks_cube_variants_and_methods():
+    entry = SOLVERS["rubiks_cube"]
+    deep = copy.deepcopy(entry.meta["presets"]["Deep Scramble"])
+
+    for method in ("CFOP", "ZZ", "1-Alg: T-Perm Only", "1-Alg: Jb-Perm Only"):
+        res = run_solver_sync(entry, copy.deepcopy(deep), {"method": method})
+        assert res["ok"] is True
+        assert res["steps"][-1]["type"] == "solution", f"{method} failed: {res['steps'][-1]['desc']}"
+
+    res_2gen = run_solver_sync(entry, copy.deepcopy(entry.meta["presets"]["2-Gen <R, U> Scramble"]), {"method": "2-Gen <R, U>"})
+    assert res_2gen["steps"][-1]["type"] == "solution"
+
+    # Invalid subgroup rejected cleanly
+    res_bad_2gen = run_solver_sync(entry, copy.deepcopy(deep), {"method": "2-Gen <R, U>"})
+    assert res_bad_2gen["steps"][-1]["type"] == "failed"
+
+    res_jb_u = run_solver_sync(entry, copy.deepcopy(entry.meta["presets"]["PLL (Jb-Perm)"]), {"method": "Jb-Perm + U Only"})
+    assert res_jb_u["steps"][-1]["type"] == "solution"
+
+
+def test_beefed_deterministic_deductions():
+    # 1. Sudoku: hard puzzle solved purely via deterministic deductions (0 backtracks, Pointing/Subsets/Fish)
+    norvig_hard = "400000805030000000000700000020000060000080400000010000000603070500200000104000000"
+    hard_board = [[int(norvig_hard[r * 9 + c]) for c in range(9)] for r in range(9)]
+    res_sud = run_solver_sync(SOLVERS["sudoku"], {"grid_dim": 9, "box_w": 3, "box_h": 3, "board": hard_board}, {})
+    assert res_sud["steps"][-1]["type"] == "solution"
+    assert res_sud["steps"][-1]["stats"]["backtracks"] == 0
+    sud_deds = [s["desc"] for s in res_sud["steps"] if s["type"] == "deduce"]
+    assert any("Pointing" in d or "Claiming" in d or "Naked Pair" in d or "X-Wing" in d for d in sud_deds)
+
+    # 2. Slitherlink 5x5 should fire corner/3-3/vertex theorems during deduce
+    res_loop = run_solver_sync(SOLVERS["loop_games"], copy.deepcopy(SOLVERS["loop_games"].meta["presets"]["5x5"]), {})
+    assert res_loop["steps"][-1]["type"] == "solution"
+    ded_descs = [s["desc"] for s in res_loop["steps"] if s["type"] == "deduce"]
+    assert any("3-3" in d or "Corner" in d or "Vertex-Entry" in d for d in ded_descs)
+
+    # 3. Unruly 6x6 + Palisade 6x6 + Nonogram 6x6 solve cleanly
+    for slug, preset_name in (("unruly", "6x6"), ("palisade", "6x6 (K=6)"), ("packing_grids", "6x6")):
+        res = run_solver_sync(SOLVERS[slug], copy.deepcopy(SOLVERS[slug].meta["presets"][preset_name]), {})
+        assert res["steps"][-1]["type"] == "solution"
+
+

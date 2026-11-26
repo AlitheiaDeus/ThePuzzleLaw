@@ -173,23 +173,91 @@ def solve(
         }
         return
 
+    # 1-Step Contradiction Probing (Lookahead) when line intersection stalls
+    probed = True
+    while probed and any(0 in r for r in grid):
+        if should_abort():
+            return
+        probed = False
+        for r in range(rows):
+            for c in range(cols):
+                if grid[r][c] != 0:
+                    continue
+                t1 = [list(row) for row in grid]
+                t1[r][c] = 1
+                ok1 = _propagate(t1, row_clues, col_clues)
+                t2 = [list(row) for row in grid]
+                t2[r][c] = -1
+                ok2 = _propagate(t2, row_clues, col_clues)
+                if not ok1 and not ok2:
+                    yield {
+                        "type": "failed",
+                        "state": snap(grid),
+                        "highlights": {"cells": [[r, c]], "color": "hot"},
+                        "desc": f"Contradiction probing at ({r + 1},{c + 1}): neither filled nor empty is valid.",
+                        "stats": {},
+                    }
+                    return
+                if not ok1 and ok2:
+                    grid[r][c] = -1
+                    steps.append((r, c, -1, "Line Lookahead Contradiction"))
+                    if not _propagate(grid, row_clues, col_clues, steps=steps):
+                        yield {"type": "failed", "state": snap(grid), "highlights": {}, "desc": "Contradiction after lookahead.", "stats": {}}
+                        return
+                    probed = True
+                    break
+                if ok1 and not ok2:
+                    grid[r][c] = 1
+                    steps.append((r, c, 1, "Line Lookahead Contradiction"))
+                    if not _propagate(grid, row_clues, col_clues, steps=steps):
+                        yield {"type": "failed", "state": snap(grid), "highlights": {}, "desc": "Contradiction after lookahead.", "stats": {}}
+                        return
+                    probed = True
+                    break
+            if probed:
+                break
+
     replay = [[0] * cols for _ in range(rows)]
     for r, c, val, desc in steps:
         if should_abort():
             return
         replay[r][c] = val
-        yield {
-            "type": "deduce",
-            "state": snap(replay),
-            "highlights": {"cells": [[r, c]], "color": "primary"},
-            "desc": f"{desc}: fill ({r + 1}, {c + 1})",
-            "stats": {},
-        }
+        if val == 1:
+            yield {
+                "type": "deduce",
+                "state": snap(replay),
+                "highlights": {"cells": [[r, c]], "color": "primary"},
+                "desc": f"{desc}: fill ({r + 1}, {c + 1})",
+                "stats": {},
+            }
+        else:
+            yield {
+                "type": "deduce",
+                "state": snap(replay),
+                "highlights": {"cells": [[r, c]], "color": "secondary"},
+                "desc": f"{desc}: exclude ({r + 1}, {c + 1})",
+                "stats": {},
+            }
+
+    def pick_mrv_cell(cur: List[List[int]]) -> Optional[tuple]:
+        best_cell = None
+        best_score = 10**9
+        for r in range(rows):
+            if 0 in cur[r]:
+                rc = len(_line_candidates(cols, row_clues[r], cur[r]))
+                for c in range(cols):
+                    if cur[r][c] == 0:
+                        cc = len(_line_candidates(rows, col_clues[c], [cur[rr][c] for rr in range(rows)]))
+                        sc = rc + cc
+                        if sc < best_score:
+                            best_score = sc
+                            best_cell = (r, c)
+        return best_cell
 
     def backtrack(cur: List[List[int]]) -> Optional[List[List[int]]]:
         if should_abort():
             return None
-        pos = next(((r, c) for r in range(rows) for c in range(cols) if cur[r][c] == 0), None)
+        pos = pick_mrv_cell(cur)
         if pos is None:
             return cur
         er, ec = pos

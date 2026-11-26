@@ -329,11 +329,18 @@ def solve(
             if changed:
                 continue
 
-            # 3. Single-exit growth & reachability lower bound for incomplete components (< K)
+            # 3. Exact-size seal, single-exit growth, reachability & bridge-articulation must-open
             comp_id, comps = compute_components()
             for cid, cells in enumerate(comps):
                 csize = len(cells)
                 if csize == region_size:
+                    for r, c in cells:
+                        for k, er, ec in cell_coords(r, c):
+                            if get_e(k, er, ec) == 0:
+                                set_e(k, er, ec, 1)
+                                trail.append((k, er, ec))
+                                events.append((k, er, ec, 1, f"Completed region K={region_size} -> seal {k.upper()}({er},{ec})"))
+                                changed = True
                     continue
                 # Find undecided boundary edges out of this component to compatible neighbor components
                 exits: List[Tuple[str, int, int]] = []
@@ -357,27 +364,41 @@ def solve(
                     changed = True
                     break
 
-                # Total reachable cells via non-wall edges
-                seen_comps = {cid}
-                reach_total = csize
-                qc = deque([cid])
-                while qc:
-                    cur_c = qc.popleft()
-                    for rr, cc in comps[cur_c]:
-                        for k, er, ec in cell_coords(rr, cc):
-                            if get_e(k, er, ec) == 1:
-                                continue
-                            pair = edge_cells(k, er, ec)
-                            if pair is None:
-                                continue
-                            u, w = pair
-                            oid = comp_id[w[0]][w[1]] if u == (rr, cc) else comp_id[u[0]][u[1]]
-                            if oid not in seen_comps:
-                                seen_comps.add(oid)
-                                reach_total += len(comps[oid])
-                                qc.append(oid)
-                if reach_total < region_size:
-                    return False, events, f"Stranded cluster of {reach_total} < K={region_size} cells"
+                def reachable_without(blocked_edge: Optional[Tuple[str, int, int]]) -> int:
+                    seen_comps = {cid}
+                    reach_total = csize
+                    qc = deque([cid])
+                    while qc:
+                        cur_c = qc.popleft()
+                        for rr, cc in comps[cur_c]:
+                            for k, er, ec in cell_coords(rr, cc):
+                                if blocked_edge == (k, er, ec) or get_e(k, er, ec) == 1:
+                                    continue
+                                pair = edge_cells(k, er, ec)
+                                if pair is None:
+                                    continue
+                                u, w = pair
+                                oid = comp_id[w[0]][w[1]] if u == (rr, cc) else comp_id[u[0]][u[1]]
+                                if oid not in seen_comps:
+                                    seen_comps.add(oid)
+                                    reach_total += len(comps[oid])
+                                    qc.append(oid)
+                    return reach_total
+
+                if reachable_without(None) < region_size:
+                    return False, events, f"Stranded cluster < K={region_size} cells"
+
+                # Bridge / Articulation Check: if closing exit e strands component < K, e MUST be OPEN
+                for ex in exits:
+                    if reachable_without(ex) < region_size:
+                        ek, eer, eec = ex
+                        set_e(ek, eer, eec, -1)
+                        trail.append((ek, eer, eec))
+                        events.append((ek, eer, eec, -1, f"Mandatory bridge for size {csize} < K={region_size} -> open {ek.upper()}({eer},{eec})"))
+                        changed = True
+                        break
+                if changed:
+                    break
 
         return True, events, ""
 

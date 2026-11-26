@@ -149,8 +149,20 @@ def _solve_slitherlink(
         return False
 
     def propagate(trail: List[Tuple[str, int, int]]) -> Tuple[bool, List[Tuple[str, int, int, int, str]], str]:
-        """Propagate cell clue and vertex degree constraints, recording assigned edges and reasons."""
+        """Propagate cell clues, vertex degrees, and Slitherlink corner/3-3/0-3/vertex-entry theorems."""
         events: List[Tuple[str, int, int, int, str]] = []
+
+        def force(kind: str, er: int, ec: int, val: int, reason: str) -> Optional[bool]:
+            cur_v = get_edge(kind, er, ec)
+            if cur_v == val:
+                return False
+            if cur_v == -val:
+                return None  # contradiction
+            set_edge(kind, er, ec, val)
+            trail.append((kind, er, ec))
+            events.append((kind, er, ec, val, reason))
+            return True
+
         changed = True
         while changed:
             changed = False
@@ -171,17 +183,108 @@ def _solve_slitherlink(
                         if ones == clue:
                             for (k, er, ec), val in zip(coords, vals):
                                 if val == 0:
-                                    set_edge(k, er, ec, -1)
-                                    trail.append((k, er, ec))
-                                    events.append((k, er, ec, -1, f"Cell ({r + 1},{c + 1})={clue} satisfied -> {k.upper()}({er},{ec}) OFF"))
-                                    changed = True
+                                    res = force(k, er, ec, -1, f"Cell ({r + 1},{c + 1})={clue} satisfied -> {k.upper()}({er},{ec}) OFF")
+                                    if res is None:
+                                        return False, events, "Contradiction"
+                                    if res:
+                                        changed = True
                         elif ones + unk == clue:
                             for (k, er, ec), val in zip(coords, vals):
                                 if val == 0:
-                                    set_edge(k, er, ec, 1)
-                                    trail.append((k, er, ec))
-                                    events.append((k, er, ec, 1, f"Cell ({r + 1},{c + 1})={clue} needs {unk} remaining -> {k.upper()}({er},{ec}) ON"))
-                                    changed = True
+                                    res = force(k, er, ec, 1, f"Cell ({r + 1},{c + 1})={clue} needs {unk} remaining -> {k.upper()}({er},{ec}) ON")
+                                    if res is None:
+                                        return False, events, "Contradiction"
+                                    if res:
+                                        changed = True
+
+            # Slitherlink deterministic theorems
+            # A. Grid Corners (for rows >= 2 and cols >= 2)
+            if rows >= 2 and cols >= 2:
+                corners = [
+                    (0, 0, ("h", 0, 0), ("v", 0, 0), ("h", 0, 1), ("v", 1, 0)),
+                    (0, cols - 1, ("h", 0, cols - 1), ("v", 0, cols), ("h", 0, cols - 2), ("v", 1, cols)),
+                    (rows - 1, 0, ("h", rows, 0), ("v", rows - 1, 0), ("h", rows, 1), ("v", rows - 2, 0)),
+                    (rows - 1, cols - 1, ("h", rows, cols - 1), ("v", rows - 1, cols), ("h", rows, cols - 2), ("v", rows - 2, cols)),
+                ]
+                for cr, cc, e_h, e_v, adj_h, adj_v in corners:
+                    cl = clues[cr][cc]
+                    if cl == 3:
+                        for ek, er, ec in (e_h, e_v):
+                            r_f = force(ek, er, ec, 1, f"Corner 3 at ({cr+1},{cc+1}) -> outer {ek.upper()}({er},{ec}) ON")
+                            if r_f is None: return False, events, f"Corner 3 contradiction at ({cr+1},{cc+1})"
+                            if r_f: changed = True
+                    elif cl == 1:
+                        for ek, er, ec in (e_h, e_v):
+                            r_f = force(ek, er, ec, -1, f"Corner 1 at ({cr+1},{cc+1}) -> outer {ek.upper()}({er},{ec}) OFF")
+                            if r_f is None: return False, events, f"Corner 1 contradiction at ({cr+1},{cc+1})"
+                            if r_f: changed = True
+                    elif cl == 2:
+                        for ek, er, ec in (adj_h, adj_v):
+                            r_f = force(ek, er, ec, 1, f"Corner 2 at ({cr+1},{cc+1}) -> adjacent outer {ek.upper()}({er},{ec}) ON")
+                            if r_f is None: return False, events, f"Corner 2 contradiction at ({cr+1},{cc+1})"
+                            if r_f: changed = True
+
+            # B. Adjacent 3-3 (Horizontal & Vertical) and Diagonal 3-3
+            for r in range(rows):
+                for c in range(cols):
+                    if clues[r][c] != 3:
+                        continue
+                    # Horizontal 3-3
+                    if c + 1 < cols and clues[r][c + 1] == 3:
+                        reqs = [("v", r, c, 1), ("v", r, c + 1, 1), ("v", r, c + 2, 1)]
+                        if r > 0:
+                            reqs.append(("v", r - 1, c + 1, -1))
+                        if r + 1 < rows:
+                            reqs.append(("v", r + 1, c + 1, -1))
+                        for ek, er, ec, ev in reqs:
+                            r_f = force(ek, er, ec, ev, f"Adjacent 3-3 at ({r+1},{c+1})-({r+1},{c+2})")
+                            if r_f is None: return False, events, f"Adjacent 3-3 contradiction at ({r+1},{c+1})"
+                            if r_f: changed = True
+                    # Vertical 3-3
+                    if r + 1 < rows and clues[r + 1][c] == 3:
+                        reqs = [("h", r, c, 1), ("h", r + 1, c, 1), ("h", r + 2, c, 1)]
+                        if c > 0:
+                            reqs.append(("h", r + 1, c - 1, -1))
+                        if c + 1 < cols:
+                            reqs.append(("h", r + 1, c + 1, -1))
+                        for ek, er, ec, ev in reqs:
+                            r_f = force(ek, er, ec, ev, f"Adjacent 3-3 at ({r+1},{c+1})-({r+2},{c+1})")
+                            if r_f is None: return False, events, f"Adjacent 3-3 contradiction at ({r+1},{c+1})"
+                            if r_f: changed = True
+                    # Diagonal 3-3 (down-right & down-left)
+                    if r + 1 < rows and c + 1 < cols and clues[r + 1][c + 1] == 3:
+                        for ek, er, ec in (("h", r, c), ("v", r, c), ("h", r + 2, c + 1), ("v", r + 1, c + 2)):
+                            r_f = force(ek, er, ec, 1, f"Diagonal 3-3 outer edge {ek.upper()}({er},{ec}) ON")
+                            if r_f is None: return False, events, "Diagonal 3-3 contradiction"
+                            if r_f: changed = True
+                    if r + 1 < rows and c - 1 >= 0 and clues[r + 1][c - 1] == 3:
+                        for ek, er, ec in (("h", r, c), ("v", r, c + 1), ("h", r + 2, c - 1), ("v", r + 1, c - 1)):
+                            r_f = force(ek, er, ec, 1, f"Diagonal 3-3 outer edge {ek.upper()}({er},{ec}) ON")
+                            if r_f is None: return False, events, "Diagonal 3-3 contradiction"
+                            if r_f: changed = True
+
+                    # C. 3 Vertex-Entry Rule: if any external ON-edge hits a corner of 3, opposite 2 edges of 3 are ON
+                    cell_set = set(cell_coords(r, c))
+                    v_checks = [
+                        (r, c, [("h", r + 1, c), ("v", r, c + 1)]),
+                        (r, c + 1, [("h", r + 1, c), ("v", r, c)]),
+                        (r + 1, c, [("h", r, c), ("v", r, c + 1)]),
+                        (r + 1, c + 1, [("h", r, c), ("v", r, c)]),
+                    ]
+                    for vr, vc, opp_edges in v_checks:
+                        ext_edges = [e for e in vertex_coords(vr, vc) if e not in cell_set]
+                        if any(get_edge(ek, er, ec) == 1 for ek, er, ec in ext_edges):
+                            for ek, er, ec in opp_edges:
+                                r_f = force(ek, er, ec, 1, f"3 Vertex-Entry at ({r+1},{c+1}) -> {ek.upper()}({er},{ec}) ON")
+                                if r_f is None: return False, events, f"3 Vertex-Entry contradiction at ({r+1},{c+1})"
+                                if r_f: changed = True
+                        elif ext_edges and all(get_edge(ek, er, ec) == -1 for ek, er, ec in ext_edges):
+                            # Both external edges at vertex (vr, vc) are OFF -> both cell edges at (vr, vc) must be ON!
+                            in_edges = [e for e in vertex_coords(vr, vc) if e in cell_set]
+                            for ek, er, ec in in_edges:
+                                r_f = force(ek, er, ec, 1, f"3 Isolated Vertex ({vr},{vc}) -> {ek.upper()}({er},{ec}) ON")
+                                if r_f is None: return False, events, f"3 Isolated Vertex contradiction at ({r+1},{c+1})"
+                                if r_f: changed = True
 
             for vr in range(rows + 1):
                 for vc in range(cols + 1):
@@ -197,24 +300,21 @@ def _solve_slitherlink(
                         if ones == 2:
                             for (k, er, ec), val in zip(coords, vals):
                                 if val == 0:
-                                    set_edge(k, er, ec, -1)
-                                    trail.append((k, er, ec))
-                                    events.append((k, er, ec, -1, f"Vertex ({vr},{vc}) degree 2 -> {k.upper()}({er},{ec}) OFF"))
-                                    changed = True
+                                    r_f = force(k, er, ec, -1, f"Vertex ({vr},{vc}) degree 2 -> {k.upper()}({er},{ec}) OFF")
+                                    if r_f is None: return False, events, "Contradiction"
+                                    if r_f: changed = True
                         elif ones == 1 and unk == 1:
                             for (k, er, ec), val in zip(coords, vals):
                                 if val == 0:
-                                    set_edge(k, er, ec, 1)
-                                    trail.append((k, er, ec))
-                                    events.append((k, er, ec, 1, f"Vertex ({vr},{vc}) degree 1 with 1 open edge -> {k.upper()}({er},{ec}) ON"))
-                                    changed = True
+                                    r_f = force(k, er, ec, 1, f"Vertex ({vr},{vc}) degree 1 with 1 open edge -> {k.upper()}({er},{ec}) ON")
+                                    if r_f is None: return False, events, "Contradiction"
+                                    if r_f: changed = True
                         elif ones == 0 and unk == 1:
                             for (k, er, ec), val in zip(coords, vals):
                                 if val == 0:
-                                    set_edge(k, er, ec, -1)
-                                    trail.append((k, er, ec))
-                                    events.append((k, er, ec, -1, f"Vertex ({vr},{vc}) isolated (1 open edge) -> {k.upper()}({er},{ec}) OFF"))
-                                    changed = True
+                                    r_f = force(k, er, ec, -1, f"Vertex ({vr},{vc}) isolated (1 open edge) -> {k.upper()}({er},{ec}) OFF")
+                                    if r_f is None: return False, events, "Contradiction"
+                                    if r_f: changed = True
         if has_premature_loop():
             return False, events, "Premature closed loop detected"
         return True, events, ""

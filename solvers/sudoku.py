@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import combinations
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 
 META: Dict[str, Any] = {
@@ -159,51 +160,307 @@ def solve(
     logic_count = 0
     backtrack_count = 0
     units = _all_units(dim, box_w, box_h)
+    row_units = units[:dim]
+    col_units = units[dim : 2 * dim]
+    box_units = units[2 * dim :]
 
-    # Phase 1: Naked & Hidden Singles
+    def place_digit(r: int, c: int, num: int, reason: str, color: str = "primary") -> Dict[str, Any]:
+        nonlocal logic_count
+        board[r][c] = num
+        candidates[r][c].clear()
+        logic_count += 1
+        for pr, pc in peers_map[(r, c)]:
+            candidates[pr][pc].discard(num)
+        return {
+            "type": "deduce",
+            "state": snap(board),
+            "highlights": {"cells": [[r, c]], "color": color},
+            "desc": reason,
+            "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+        }
+
+    # Phase 1: Singles, Locked Candidates, Naked/Hidden Subsets, X-Wing/Swordfish, XY-Wing
     stalled = False
     while not stalled:
         if should_abort():
             return
         stalled = True
 
+        # Check contradiction
+        for r in range(dim):
+            for c in range(dim):
+                if board[r][c] == 0 and not candidates[r][c]:
+                    yield {
+                        "type": "failed",
+                        "state": snap(board),
+                        "highlights": {"cells": [[r, c]], "color": "hot"},
+                        "desc": f"Contradiction at ({r + 1},{c + 1}): 0 candidates remaining.",
+                        "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                    }
+                    return
+
+        # 1. Naked Singles
         for r in range(dim):
             for c in range(dim):
                 if board[r][c] == 0 and len(candidates[r][c]) == 1:
                     num = next(iter(candidates[r][c]))
-                    board[r][c] = num
-                    candidates[r][c].clear()
-                    logic_count += 1
                     stalled = False
-                    for pr, pc in peers_map[(r, c)]:
-                        candidates[pr][pc].discard(num)
-                    yield {
-                        "type": "deduce",
-                        "state": snap(board),
-                        "highlights": {"cells": [[r, c]], "color": "primary"},
-                        "desc": f"Naked Single at ({r + 1},{c + 1}): only candidate {{{num}}}",
-                        "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
-                    }
+                    yield place_digit(r, c, num, f"Naked Single at ({r + 1},{c + 1}): only candidate {{{num}}}", "primary")
 
-        if stalled:
-            for unit in units:
+        if not stalled:
+            continue
+
+        # 2. Hidden Singles
+        for unit in units:
+            for num in range(1, dim + 1):
+                places = [(r, c) for r, c in unit if board[r][c] == 0 and num in candidates[r][c]]
+                if len(places) == 1:
+                    r, c = places[0]
+                    stalled = False
+                    yield place_digit(r, c, num, f"Hidden Single at ({r + 1},{c + 1}): only place for {num} in unit", "secondary")
+                    break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # 3. Locked Candidates (Pointing Pairs/Triples & Box-Line Claiming)
+        for b_idx, box in enumerate(box_units):
+            box_set = set(box)
+            for num in range(1, dim + 1):
+                places = [(r, c) for r, c in box if board[r][c] == 0 and num in candidates[r][c]]
+                if len(places) >= 2:
+                    rs = {r for r, _ in places}
+                    if len(rs) == 1:
+                        rr = next(iter(rs))
+                        killed = [(rr, c) for c in range(dim) if (rr, c) not in box_set and num in candidates[rr][c]]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc].discard(num)
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in killed], "color": "secondary"},
+                                "desc": f"Pointing (Box {b_idx + 1} -> Row {rr + 1}): eliminated {num} from {len(killed)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                    cs = {c for _, c in places}
+                    if len(cs) == 1:
+                        cc = next(iter(cs))
+                        killed = [(r, cc) for r in range(dim) if (r, cc) not in box_set and num in candidates[r][cc]]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc].discard(num)
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in killed], "color": "secondary"},
+                                "desc": f"Pointing (Box {b_idx + 1} -> Col {cc + 1}): eliminated {num} from {len(killed)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # Box-Line Claiming
+        for line_kind, line_units in (("Row", row_units), ("Col", col_units)):
+            for l_idx, line in enumerate(line_units):
+                line_set = set(line)
                 for num in range(1, dim + 1):
-                    places = [(r, c) for r, c in unit if board[r][c] == 0 and num in candidates[r][c]]
-                    if len(places) == 1:
-                        r, c = places[0]
-                        board[r][c] = num
-                        candidates[r][c].clear()
-                        logic_count += 1
-                        stalled = False
-                        for pr, pc in peers_map[(r, c)]:
-                            candidates[pr][pc].discard(num)
-                        yield {
-                            "type": "deduce",
-                            "state": snap(board),
-                            "highlights": {"cells": [[r, c]], "color": "secondary"},
-                            "desc": f"Hidden Single at ({r + 1},{c + 1}): only place for {num} in unit",
-                            "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
-                        }
+                    places = [(r, c) for r, c in line if board[r][c] == 0 and num in candidates[r][c]]
+                    if len(places) >= 2:
+                        boxes_hit = {(r // box_h, c // box_w) for r, c in places}
+                        if len(boxes_hit) == 1:
+                            br_i, bc_i = next(iter(boxes_hit))
+                            box = box_units[br_i * (dim // box_w) + bc_i]
+                            killed = [(r, c) for r, c in box if (r, c) not in line_set and num in candidates[r][c]]
+                            if killed:
+                                for kr, kc in killed:
+                                    candidates[kr][kc].discard(num)
+                                logic_count += 1
+                                stalled = False
+                                yield {
+                                    "type": "deduce",
+                                    "state": snap(board),
+                                    "highlights": {"cells": [[r, c] for r, c in killed], "color": "secondary"},
+                                    "desc": f"Claiming ({line_kind} {l_idx + 1}): eliminated {num} from {len(killed)} box cell(s)",
+                                    "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                                }
+                                break
+                if not stalled:
+                    break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # 4. Naked Subsets (Pairs, Triples, Quads)
+        subset_names = {2: "Pair", 3: "Triple", 4: "Quad"}
+        for unit in units:
+            open_cells = [(r, c) for r, c in unit if board[r][c] == 0]
+            for k in (2, 3, 4):
+                eligible = [(r, c) for r, c in open_cells if 2 <= len(candidates[r][c]) <= k]
+                if len(eligible) < k:
+                    continue
+                for combo in combinations(eligible, k):
+                    union = set().union(*(candidates[r][c] for r, c in combo))
+                    if len(union) == k:
+                        combo_set = set(combo)
+                        killed = [(r, c) for r, c in open_cells if (r, c) not in combo_set and (candidates[r][c] & union)]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc] -= union
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in combo], "color": "secondary"},
+                                "desc": f"Naked {subset_names[k]} {{{','.join(str(d) for d in sorted(union))}}}: eliminated from {len(killed)} peer(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                if not stalled:
+                    break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # 5. Hidden Subsets (Pairs, Triples)
+        for unit in units:
+            open_cells = [(r, c) for r, c in unit if board[r][c] == 0]
+            digit_pos = {
+                d: [(r, c) for r, c in open_cells if d in candidates[r][c]]
+                for d in range(1, dim + 1)
+            }
+            for k in (2, 3):
+                elig_digits = [d for d, ps in digit_pos.items() if 2 <= len(ps) <= k]
+                if len(elig_digits) < k:
+                    continue
+                for d_combo in combinations(elig_digits, k):
+                    cells_union = set().union(*(digit_pos[d] for d in d_combo))
+                    if len(cells_union) == k:
+                        d_set = set(d_combo)
+                        stripped = [(r, c) for r, c in cells_union if candidates[r][c] - d_set]
+                        if stripped:
+                            for sr, sc in stripped:
+                                candidates[sr][sc] &= d_set
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in stripped], "color": "secondary"},
+                                "desc": f"Hidden {subset_names[k]} {{{','.join(str(d) for d in d_combo)}}}: restricted {len(stripped)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                if not stalled:
+                    break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # 6. X-Wing & Swordfish (rows -> cols and cols -> rows)
+        fish_names = {2: "X-Wing", 3: "Swordfish"}
+        for num in range(1, dim + 1):
+            for k in (2, 3):
+                # Row-based fish
+                row_cols = {
+                    r: {c for c in range(dim) if board[r][c] == 0 and num in candidates[r][c]}
+                    for r in range(dim)
+                }
+                elig_r = [r for r, cs in row_cols.items() if 2 <= len(cs) <= k]
+                for r_combo in combinations(elig_r, k):
+                    cols_u = set().union(*(row_cols[r] for r in r_combo))
+                    if len(cols_u) == k:
+                        r_set = set(r_combo)
+                        killed = [(r, c) for r in range(dim) if r not in r_set for c in cols_u if board[r][c] == 0 and num in candidates[r][c]]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc].discard(num)
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in killed], "color": "secondary"},
+                                "desc": f"{fish_names[k]} ({num}) on Rows {','.join(str(r+1) for r in r_combo)}: eliminated {len(killed)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                if not stalled:
+                    break
+                # Col-based fish
+                col_rows = {
+                    c: {r for r in range(dim) if board[r][c] == 0 and num in candidates[r][c]}
+                    for c in range(dim)
+                }
+                elig_c = [c for c, rs in col_rows.items() if 2 <= len(rs) <= k]
+                for c_combo in combinations(elig_c, k):
+                    rows_u = set().union(*(col_rows[c] for c in c_combo))
+                    if len(rows_u) == k:
+                        c_set = set(c_combo)
+                        killed = [(r, c) for c in range(dim) if c not in c_set for r in rows_u if board[r][c] == 0 and num in candidates[r][c]]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc].discard(num)
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[r, c] for r, c in killed], "color": "secondary"},
+                                "desc": f"{fish_names[k]} ({num}) on Cols {','.join(str(c+1) for c in c_combo)}: eliminated {len(killed)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                if not stalled:
+                    break
+            if not stalled:
+                break
+        if not stalled:
+            continue
+
+        # 7. XY-Wing
+        bivalue = [(r, c) for r in range(dim) for c in range(dim) if board[r][c] == 0 and len(candidates[r][c]) == 2]
+        for pr, pc in bivalue:
+            x_val, y_val = sorted(candidates[pr][pc])
+            p_peers = peers_map[(pr, pc)]
+            pincers_x = [(r, c) for r, c in bivalue if (r, c) in p_peers and x_val in candidates[r][c] and y_val not in candidates[r][c]]
+            pincers_y = [(r, c) for r, c in bivalue if (r, c) in p_peers and y_val in candidates[r][c] and x_val not in candidates[r][c]]
+            for r1, c1 in pincers_x:
+                z_cand = next(iter(candidates[r1][c1] - {x_val}))
+                for r2, c2 in pincers_y:
+                    if candidates[r2][c2] == {y_val, z_cand}:
+                        common_peers = peers_map[(r1, c1)] & peers_map[(r2, c2)]
+                        killed = [(r, c) for r, c in common_peers if (r, c) != (pr, pc) and board[r][c] == 0 and z_cand in candidates[r][c]]
+                        if killed:
+                            for kr, kc in killed:
+                                candidates[kr][kc].discard(z_cand)
+                            logic_count += 1
+                            stalled = False
+                            yield {
+                                "type": "deduce",
+                                "state": snap(board),
+                                "highlights": {"cells": [[pr, pc], [r1, c1], [r2, c2]], "color": "secondary"},
+                                "desc": f"XY-Wing pivot ({pr+1},{pc+1}) {{{x_val},{y_val}}} -> eliminated {z_cand} from {len(killed)} cell(s)",
+                                "stats": {"logic_deductions": logic_count, "backtracks": backtrack_count},
+                            }
+                            break
+                if not stalled:
+                    break
+            if not stalled:
+                break
 
     # Phase 2: MRV Backtracking
     steps_to_confirm: List[Tuple[List[List[int]], int, int, int, int]] = []
