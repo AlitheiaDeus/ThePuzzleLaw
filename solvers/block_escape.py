@@ -80,6 +80,7 @@ META: Dict[str, Any] = {
             "options": ["bfs", "wastar", "astar", "greedy"],
             "default": "bfs",
         },
+        {"key": "multi_step", "label": "1 Swipe = Any Distance", "type": "bool", "default": True},
         {"key": "glitches_allowed", "label": "Glitches Allowed (Skip Portals)", "type": "bool", "default": False},
         {"key": "terrain", "label": "Terrain Map", "type": "textarea", "default": ""},
         {"key": "blocks", "label": "Blocks Map", "type": "textarea", "default": ""},
@@ -329,6 +330,7 @@ def solve(
     blocks = params.get("blocks") or state.get("blocks", "")
     chains = state.get("chains", [])
     search_mode = params.get("search_mode", "bfs")
+    multi_step = bool(params.get("multi_step", True))
     glitches_allowed = bool(params.get("glitches_allowed", False))
 
     static_grid, portal_pairs, portal_labels, target_zone, blocks_info, groups, init_state, max_x, max_y = (
@@ -498,7 +500,7 @@ def solve(
     # Try native Rust 256-bit bitboard accelerator when available and grid fits in 256 bits
     if _NATIVE_BIN.exists() and stride * (max_y + 2) <= 256:
         lines_in = [
-            f"{len(init_masks)} {t_id} {search_mode} {1 if glitches_allowed else 0}",
+            f"{len(init_masks)} {t_id} {search_mode} {1 if glitches_allowed else 0} {1 if multi_step else 0}",
             f"{wall_mask:064x} {board_mask:064x} {target_mask:064x}",
             " ".join(f"{m:064x}" for m in init_masks),
             str(len(portal_masks)),
@@ -690,10 +692,37 @@ def solve(
                     for bid, nm in nxt_vals:
                         sim[bid] = nm
                     stepped = True
-                    if not is_ice:
-                        break
 
-                if not stepped:
+                    if not is_ice:
+                        slide_masks = tuple(sim)
+                        if portal_masks:
+                            tele = list(slide_masks)
+                            teleported = False
+                            for bid in group_ids:
+                                bm = tele[bid]
+                                for p1m, p2m in portal_masks:
+                                    dest = p2m if bm == p1m else (p1m if bm == p2m else 0)
+                                    if dest:
+                                        cur_other = other_occ
+                                        for ob in group_ids:
+                                            if ob != bid:
+                                                cur_other |= tele[ob]
+                                        if (dest & (wall_mask | cur_other)) == 0:
+                                            tele[bid] = dest
+                                            teleported = True
+                                        break
+                            if teleported:
+                                yield (canonicalize(tuple(tele)), None), (g_idx, ld_idx, 2)
+                                if glitches_allowed:
+                                    yield (canonicalize(slide_masks), g_idx), (g_idx, ld_idx, 3)
+                            else:
+                                yield (canonicalize(slide_masks), None), (g_idx, ld_idx, 1)
+                        else:
+                            yield (canonicalize(slide_masks), None), (g_idx, ld_idx, 1)
+                        if not multi_step:
+                            break
+
+                if not stepped or not is_ice:
                     continue
 
                 slide_masks = tuple(sim)

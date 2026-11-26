@@ -514,11 +514,18 @@ def test_block_escape_target_dirs_and_portal_glitches():
         "blocks": "tr o o\no o o",
         "chains": [],
     }
-    res_normal = run_solver_sync(entry, glitch_state, {"glitches_allowed": False})
+    # With multi_step=True, non-ice 'tr' can slide 2 cells past A to T in 1 move.
+    res_drag = run_solver_sync(entry, glitch_state, {"glitches_allowed": False, "multi_step": True})
+    assert res_drag["steps"][-1]["type"] == "solution"
+    assert res_drag["steps"][-1]["stats"]["moves"] == 1
+
+    # With multi_step=False (1 cell/move), normal mode teleports to (1,2), Taps back, then slides to T (3 moves);
+    # with glitches_allowed=True it can skip A and swipe off on the next move (2 moves).
+    res_normal = run_solver_sync(entry, glitch_state, {"glitches_allowed": False, "multi_step": False})
     assert res_normal["steps"][-1]["type"] == "solution"
     assert res_normal["steps"][-1]["stats"]["moves"] == 3
 
-    res_glitch = run_solver_sync(entry, glitch_state, {"glitches_allowed": True})
+    res_glitch = run_solver_sync(entry, glitch_state, {"glitches_allowed": True, "multi_step": False})
     assert res_glitch["steps"][-1]["type"] == "solution"
     assert res_glitch["steps"][-1]["stats"]["moves"] == 2
 

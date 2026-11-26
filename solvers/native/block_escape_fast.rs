@@ -341,6 +341,7 @@ fn expand_state_into(
     groups: &[GroupSpec],
     canon_classes: &[Vec<usize>],
     glitches_allowed: bool,
+    multi_step: bool,
     buf: &mut ExpandBuf,
 ) {
     uncanonicalize_anchors_to_masks(ck, &mut buf.cur_masks, base_shapes, canon_classes);
@@ -432,10 +433,91 @@ fn expand_state_into(
                 }
                 stepped = true;
                 if !group.is_ice {
-                    break;
+                    if !portals.is_empty() {
+                        buf.tele_masks.copy_from_slice(&buf.sim_masks);
+                        let mut teleported = false;
+                        for &bid in &group.ids {
+                            let bm = buf.tele_masks[bid];
+                            for &(p1, p2) in portals {
+                                let dest = if bm == p1 {
+                                    p2
+                                } else if bm == p2 {
+                                    p1
+                                } else {
+                                    Mask256::default()
+                                };
+                                if !dest.is_zero() {
+                                    let mut cur_other = other_occ;
+                                    for &ob in &group.ids {
+                                        if ob != bid {
+                                            cur_other = cur_other.or(buf.tele_masks[ob]);
+                                        }
+                                    }
+                                    if dest.and(wall_mask.or(cur_other)).is_zero() {
+                                        buf.tele_masks[bid] = dest;
+                                        teleported = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if teleported {
+                            let mcode2 = ((g_idx as u32) << 16) | ((ld_idx as u32) << 4) | 2;
+                            push_cand(
+                                &buf.tele_masks,
+                                u16::MAX,
+                                cur_sid,
+                                mcode2,
+                                &mut buf.cand_canon,
+                                canon_classes,
+                                &mut buf.out_anchors,
+                                &mut buf.out_meta,
+                            );
+                            if glitches_allowed {
+                                let mcode3 = ((g_idx as u32) << 16) | ((ld_idx as u32) << 4) | 3;
+                                push_cand(
+                                    &buf.sim_masks,
+                                    g_idx as u16,
+                                    cur_sid,
+                                    mcode3,
+                                    &mut buf.cand_canon,
+                                    canon_classes,
+                                    &mut buf.out_anchors,
+                                    &mut buf.out_meta,
+                                );
+                            }
+                        } else {
+                            let mcode1 = ((g_idx as u32) << 16) | ((ld_idx as u32) << 4) | 1;
+                            push_cand(
+                                &buf.sim_masks,
+                                u16::MAX,
+                                cur_sid,
+                                mcode1,
+                                &mut buf.cand_canon,
+                                canon_classes,
+                                &mut buf.out_anchors,
+                                &mut buf.out_meta,
+                            );
+                        }
+                    } else {
+                        let mcode1 = ((g_idx as u32) << 16) | ((ld_idx as u32) << 4) | 1;
+                        push_cand(
+                            &buf.sim_masks,
+                            u16::MAX,
+                            cur_sid,
+                            mcode1,
+                            &mut buf.cand_canon,
+                            canon_classes,
+                            &mut buf.out_anchors,
+                            &mut buf.out_meta,
+                        );
+                    }
+                    if !multi_step {
+                        break;
+                    }
                 }
             }
-            if !stepped {
+            if !stepped || !group.is_ice {
                 continue;
             }
 
@@ -527,6 +609,7 @@ fn main() {
     let t_id: usize = hdr[1].parse().unwrap();
     let search_mode = hdr[2].clone();
     let glitches_allowed = hdr[3] == "1";
+    let multi_step = hdr.get(4).map(|s| s == "1").unwrap_or(true);
 
     let masks_line = next_line(&mut lines);
     let wall_mask = Mask256::from_hex(&masks_line[0]);
@@ -666,6 +749,7 @@ fn main() {
                     &groups,
                     &canon_classes,
                     glitches_allowed,
+                    multi_step,
                     &mut buf,
                 );
             }
@@ -737,6 +821,7 @@ fn main() {
                             &groups,
                             &canon_classes,
                             glitches_allowed,
+                            multi_step,
                             &mut seq_buf,
                         );
                     }
@@ -777,6 +862,7 @@ fn main() {
                                         groups_ref,
                                         classes_ref,
                                         glitches_allowed,
+                                        multi_step,
                                         &mut wbuf,
                                     );
                                 }
