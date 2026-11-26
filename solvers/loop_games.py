@@ -496,6 +496,65 @@ def _solve_slitherlink(
                             if r_f is None: return False, events, "Inside/Outside parity contradiction"
                             if r_f: changed = True
 
+            # E2. Same-Color Neighbor Coupling & Opposite-Color Pair on cell quotas
+            for r in range(rows):
+                for c in range(cols):
+                    cl = clues[r][c]
+                    if cl is None:
+                        continue
+                    c_coords = cell_coords(r, c)
+                    ones_c = sum(1 for k, er, ec in c_coords if get_edge(k, er, ec) == 1)
+                    unk_es = [(k, er, ec) for k, er, ec in c_coords if get_edge(k, er, ec) == 0]
+                    unk_cnt = len(unk_es)
+                    if unk_cnt < 2:
+                        continue
+                    rem = cl - ones_c
+                    by_color: Dict[Tuple[int, int], List[Tuple[str, int, int]]] = {}
+                    seen_pair: Dict[int, List[Tuple[Tuple[str, int, int], int]]] = {}
+                    opp_pair: Optional[Tuple[Tuple[str, int, int], Tuple[str, int, int]]] = None
+                    for ek, er, ec in unk_es:
+                        if ek == "h":
+                            nb = (er - 1) * cols + ec if er == r + 0 and er > 0 else (er * cols + ec if er == r + 1 and er < rows else ext_node)
+                        else:
+                            nb = r * cols + (ec - 1) if ec == c and ec > 0 else (r * cols + ec if ec == c + 1 and ec < cols else ext_node)
+                        rn, pn = uf_find(nb)
+                        by_color.setdefault((rn, pn), []).append((ek, er, ec))
+                        lst = seen_pair.setdefault(rn, [])
+                        if opp_pair is None:
+                            for oedge, op in lst:
+                                if op != pn:
+                                    opp_pair = (oedge, (ek, er, ec))
+                                    break
+                        lst.append(((ek, er, ec), pn))
+
+                    for same_es in by_color.values():
+                        k_same = len(same_es)
+                        if k_same >= 2:
+                            if rem < k_same:
+                                for ek, er, ec in same_es:
+                                    rf = force(ek, er, ec, -1, f"Same-color coupling at ({r+1},{c+1})={cl} -> {ek.upper()}({er},{ec}) OFF")
+                                    if rf is None: return False, events, "Same-color coupling contradiction"
+                                    if rf: changed = True
+                            elif unk_cnt - rem < k_same:
+                                for ek, er, ec in same_es:
+                                    rf = force(ek, er, ec, 1, f"Same-color coupling at ({r+1},{c+1})={cl} -> {ek.upper()}({er},{ec}) ON")
+                                    if rf is None: return False, events, "Same-color coupling contradiction"
+                                    if rf: changed = True
+
+                    if opp_pair is not None and unk_cnt > 2:
+                        if rem == 1:
+                            for ek, er, ec in unk_es:
+                                if (ek, er, ec) not in opp_pair and get_edge(ek, er, ec) == 0:
+                                    rf = force(ek, er, ec, -1, f"A|B parity pair at ({r+1},{c+1})={cl} -> {ek.upper()}({er},{ec}) OFF")
+                                    if rf is None: return False, events, "A|B parity pair contradiction"
+                                    if rf: changed = True
+                        elif unk_cnt - rem == 1:
+                            for ek, er, ec in unk_es:
+                                if (ek, er, ec) not in opp_pair and get_edge(ek, er, ec) == 0:
+                                    rf = force(ek, er, ec, 1, f"A|B parity pair at ({r+1},{c+1})={cl} -> {ek.upper()}({er},{ec}) ON")
+                                    if rf is None: return False, events, "A|B parity pair contradiction"
+                                    if rf: changed = True
+
             # F. Premature Loop Avoidance on open chain endpoints
             adj_on: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
             total_on = 0

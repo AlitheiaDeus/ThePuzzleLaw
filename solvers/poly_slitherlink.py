@@ -579,41 +579,64 @@ def solve(
                         if rf is None: return False, events, "Inside/Outside parity contradiction"
                         if rf: changed = True
 
-            # 3b. A|B Opposite-Parity Pair on 1 / (n-1) cells:
-            # If two undecided edges of a cell lead to neighbors with opposite parities in the same UF component,
-            # exactly 1 of those 2 edges is ON and 1 is OFF!
+            # 3b. A|B Opposite-Parity Pair & Same-Color Neighbor Coupling on cell quotas
             for fi, f in enumerate(faces):
                 cl = f["clue"]
                 if cl is None:
                     continue
                 n_sides = len(f["edges"])
-                if cl not in (1, n_sides - 1):
-                    continue
+                ones_f = sum(1 for ei in f["edges"] if ev[ei] == 1)
                 unk_es = [ei for ei in f["edges"] if ev[ei] == 0]
-                if len(unk_es) <= 2:
+                if len(unk_es) < 2:
                     continue
+                rem = cl - ones_f
+                unk_cnt = len(unk_es)
+
+                by_color: Dict[Tuple[int, int], List[int]] = {}
                 seen_pair: Dict[int, List[Tuple[int, int]]] = {}
                 opp_pair: Optional[Tuple[int, int]] = None
                 for ei in unk_es:
                     fa, fb = edge_faces[ei]
                     nb = fb if fa == fi else fa
                     rn, pn = uf_find(nb)
+                    by_color.setdefault((rn, pn), []).append(ei)
                     lst = seen_pair.setdefault(rn, [])
-                    for oei, op in lst:
-                        if op != pn:
-                            opp_pair = (oei, ei)
-                            break
-                    if opp_pair is not None:
-                        break
+                    if opp_pair is None:
+                        for oei, op in lst:
+                            if op != pn:
+                                opp_pair = (oei, ei)
+                                break
                     lst.append((ei, pn))
-                if opp_pair is not None:
-                    forced_v = -1 if cl == 1 else 1
-                    lbl = "OFF" if forced_v == -1 else "ON"
-                    for ei in unk_es:
-                        if ei not in opp_pair:
-                            rf = force(ei, forced_v, f"A|B parity pair on Face {fi + 1}={cl} -> E{ei} {lbl}")
-                            if rf is None: return False, events, "A|B parity pair contradiction"
-                            if rf: changed = True
+
+                # Same-color coupling: all edges to same-color neighbors must be all ON or all OFF
+                for same_es in by_color.values():
+                    k_same = len(same_es)
+                    if k_same >= 2:
+                        if rem < k_same:
+                            for ei in same_es:
+                                rf = force(ei, -1, f"Same-color coupling on Face {fi + 1}={cl} -> E{ei} OFF")
+                                if rf is None: return False, events, "Same-color coupling contradiction"
+                                if rf: changed = True
+                        elif unk_cnt - rem < k_same:
+                            for ei in same_es:
+                                rf = force(ei, 1, f"Same-color coupling on Face {fi + 1}={cl} -> E{ei} ON")
+                                if rf is None: return False, events, "Same-color coupling contradiction"
+                                if rf: changed = True
+
+                # Opposite-color pair contributes 1 ON + 1 OFF
+                if opp_pair is not None and unk_cnt > 2:
+                    if rem == 1:
+                        for ei in unk_es:
+                            if ei not in opp_pair and ev[ei] == 0:
+                                rf = force(ei, -1, f"A|B parity pair on Face {fi + 1}={cl} -> E{ei} OFF")
+                                if rf is None: return False, events, "A|B parity pair contradiction"
+                                if rf: changed = True
+                    elif unk_cnt - rem == 1:
+                        for ei in unk_es:
+                            if ei not in opp_pair and ev[ei] == 0:
+                                rf = force(ei, 1, f"A|B parity pair on Face {fi + 1}={cl} -> E{ei} ON")
+                                if rf is None: return False, events, "A|B parity pair contradiction"
+                                if rf: changed = True
 
             # 4. Pangea (No-Islands + A|B + Connecting Rivers Cut-Vertex)
             pass_adj: List[List[Tuple[int, int]]] = [[] for _ in range(ext_node + 1)]
