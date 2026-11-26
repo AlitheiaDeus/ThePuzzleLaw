@@ -787,7 +787,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           if (baseChar === "t" && cleanTok.length >= 2 && DIR_GLYPH[cleanTok[1]]) {
             glyph = `★${DIR_GLYPH[cleanTok[1]]}`;
           }
-          tile.textContent = glyph;
+          tile.appendChild(document.createTextNode(glyph));
 
           const badge = chainBadgeMap.get(cleanTok) || chainBadgeMap.get(baseChar);
           if (badge) {
