@@ -296,9 +296,7 @@ textarea:focus {
   min-height: 0;
   min-width: 0;
   position: relative;
-  display: flex;
-  align-items: safe center;
-  justify-content: safe center;
+  display: block;
   padding: 16px;
   overflow: auto;
 }
@@ -327,12 +325,12 @@ textarea:focus {
   min-width: 100%;
   min-height: 100%;
   height: auto;
-  margin: auto;
   display: flex;
   flex-direction: column;
-  align-items: safe center;
-  justify-content: safe center;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
+  padding-bottom: 16px;
 }
 
 /* Generic Grid Renderer */

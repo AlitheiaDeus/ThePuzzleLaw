@@ -8,8 +8,10 @@ from collections import deque
 import heapq
 import os
 from pathlib import Path
+import queue as queue_mod
 import re
 import subprocess
+import threading
 import time
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 
@@ -530,13 +532,40 @@ def solve(
             assert proc.stdin is not None and proc.stdout is not None
             proc.stdin.write(payload)
             proc.stdin.close()
+
+            line_q: queue_mod.Queue[Optional[str]] = queue_mod.Queue()
+
+            def _reader() -> None:
+                assert proc.stdout is not None
+                try:
+                    for raw_line in proc.stdout:
+                        line_q.put(raw_line)
+                finally:
+                    line_q.put(None)
+
+            t_read = threading.Thread(target=_reader, daemon=True)
+            t_read.start()
+
+            def _next_line() -> Optional[str]:
+                while True:
+                    if should_abort():
+                        return None
+                    try:
+                        return line_q.get(timeout=0.05)
+                    except queue_mod.Empty:
+                        continue
+
             while True:
                 if should_abort():
-                    proc.terminate()
+                    proc.kill()
                     proc.wait(timeout=2)
                     return
-                line = proc.stdout.readline()
-                if not line:
+                line = _next_line()
+                if line is None:
+                    if should_abort():
+                        proc.kill()
+                        proc.wait(timeout=2)
+                        return
                     break
                 parts = line.strip().split()
                 if not parts:
@@ -565,7 +594,12 @@ def solve(
                         }
                         return
                     for idx in range(1, n_steps + 1):
-                        sline = proc.stdout.readline().strip().split()
+                        raw_s = _next_line()
+                        if raw_s is None:
+                            proc.kill()
+                            proc.wait(timeout=2)
+                            return
+                        sline = raw_s.strip().split()
                         mcode = int(sline[0])
                         masks_snap = tuple(int(h, 16) for h in sline[1:])
                         g_idx = mcode >> 16
@@ -597,7 +631,7 @@ def solve(
                     return
         finally:
             if proc.poll() is None:
-                proc.terminate()
+                proc.kill()
                 proc.wait(timeout=2)
 
     def gen_moves(masks: Tuple[int, ...], pending_gid: Optional[int]):
