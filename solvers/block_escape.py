@@ -574,9 +574,7 @@ def solve(
                     visited_n = int(parts[1])
                     depth_n = int(parts[2])
                     yield {
-                        "type": "explore",
-                        "state": make_state_from_masks(init_masks),
-                        "highlights": {},
+                        "type": "progress",
                         "desc": f"Searching (Rust {search_mode.upper()})... {visited_n:,} states, depth {depth_n}",
                         "stats": {"visited": visited_n, "depth": depth_n},
                     }
@@ -753,9 +751,7 @@ def solve(
             if now - last_report >= 1.0:
                 last_report = now
                 yield {
-                    "type": "explore",
-                    "state": make_state_from_masks(cur_masks),
-                    "highlights": {},
+                    "type": "progress",
                     "desc": f"Searching ({search_mode.upper()})... {len(parent):,} states, depth {cur_g}",
                     "stats": {"visited": len(parent), "depth": cur_g},
                 }
@@ -784,9 +780,7 @@ def solve(
             if now - last_report >= 1.0:
                 last_report = now
                 yield {
-                    "type": "explore",
-                    "state": make_state_from_masks(cur_masks),
-                    "highlights": {},
+                    "type": "progress",
                     "desc": f"Searching (BFS)... {len(parent):,} states, depth {cur_depth}, queue {len(queue):,}",
                     "stats": {"visited": len(parent), "depth": cur_depth},
                 }

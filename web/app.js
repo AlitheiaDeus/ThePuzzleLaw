@@ -442,6 +442,9 @@ async function runSolve() {
 
         if (evName === "job") {
           state.activeJobId = payload.job_id;
+        } else if (evName === "progress") {
+          els.stepDescLive.textContent = payload.desc || "Searching...";
+          renderStats(payload.stats);
         } else if (evName === "step") {
           state.steps.push(payload);
           appendLog(`[${payload.type.toUpperCase()}] ${payload.desc}`, payload.type);

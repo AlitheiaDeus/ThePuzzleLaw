@@ -58,9 +58,11 @@ def run_solver_sync(
         return aborted
 
     try:
-        for idx, step in enumerate(entry.solve(state, params, should_abort)):
+        for step in entry.solve(state, params, should_abort):
+            if step.get("type") == "progress":
+                continue
             steps.append(step)
-            if idx + 1 >= max_steps:
+            if len(steps) >= max_steps:
                 aborted = True
                 break
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
@@ -100,6 +102,9 @@ def iter_solver_events(
             if abort_event.is_set():
                 yield {"event": "aborted", "data": {"job_id": job_id, "steps": count}}
                 return
+            if step.get("type") == "progress":
+                yield {"event": "progress", "data": step}
+                continue
             yield {"event": "step", "data": step}
             count += 1
             if count >= max_steps:
