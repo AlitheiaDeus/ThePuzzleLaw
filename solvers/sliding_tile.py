@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 
 META: Dict[str, Any] = {
     "slug": "sliding_tile",
-    "name": "Sliding Tile (N-Puzzle)",
+    "name": "Sliding Tile",
     "category": "Path",
     "renderer": "grid",
     "grid_meta": {

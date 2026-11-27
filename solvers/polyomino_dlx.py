@@ -56,7 +56,7 @@ def _hole_board_8x8() -> List[List[int]]:
 
 META: Dict[str, Any] = {
     "slug": "polyomino_dlx",
-    "name": "Polyomino Tiling (DLX)",
+    "name": "Polyomino Tiling",
     "category": "State",
     "renderer": "grid",
     "description": "Exact-cover polyomino & pentomino tiling solver using Knuth's Algorithm X (Dancing Links).",

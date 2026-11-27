@@ -137,6 +137,7 @@ function paintSticker(faces, f, r, c, cycleOnly = false) {
 function build3DFace(faceCode, grid, activeFace, editable, onStickerPaint) {
   const faceEl = document.createElement("div");
   const isHot = activeFace === faceCode;
+  faceEl.className = "cube-face" + (isHot ? " hot" : "");
   faceEl.style.cssText = `
     position: absolute;
     width: 108px;
@@ -145,11 +146,7 @@ function build3DFace(faceCode, grid, activeFace, editable, onStickerPaint) {
     grid-template-columns: repeat(3, 1fr);
     gap: 3px;
     padding: 4px;
-    background: #141619;
-    border-radius: 6px;
     box-sizing: border-box;
-    border: 2px solid ${isHot ? "var(--accent-warm, #FFE600)" : "#0d0e10"};
-    box-shadow: ${isHot ? "0 0 14px var(--accent-warm, #FFE600)" : "none"};
     backface-visibility: hidden;
   `;
 
@@ -168,10 +165,10 @@ function build3DFace(faceCode, grid, activeFace, editable, onStickerPaint) {
       const code = grid[r][c];
       const info = COLOR_MAP[code] || { hex: "#444", text: "#fff" };
       const cell = document.createElement("div");
+      cell.className = "cube-sticker";
       cell.style.cssText = `
         background: ${info.hex};
         color: ${info.text};
-        border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -317,6 +314,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
 
   // 3D Cube Viewport (drag-to-rotate)
   const cubeStage = document.createElement("div");
+  cubeStage.className = "board-frame cube-stage";
   cubeStage.style.cssText = `
     position: relative;
     width: 210px;
@@ -325,9 +323,6 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
     align-items: center;
     justify-content: center;
     perspective: 700px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
     cursor: grab;
     user-select: none;
     touch-action: none;
@@ -349,19 +344,6 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
     cubePivot.appendChild(build3DFace(f, faces[f], highlights?.face, editable, on3DPaint));
   }
   cubeStage.appendChild(cubePivot);
-
-  const dragHint = document.createElement("div");
-  dragHint.style.cssText = `
-    position: absolute;
-    bottom: 6px;
-    right: 9px;
-    font-size: 10px;
-    color: var(--text-muted);
-    opacity: 0.75;
-    pointer-events: none;
-  `;
-  dragHint.textContent = editable ? "Drag to rotate · Click to paint" : "Drag to rotate";
-  cubeStage.appendChild(dragHint);
 
   let dragging = false;
   let dragDist = 0;
@@ -413,20 +395,19 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
 
   // 2D Unfolded Net (4 cols x 3 rows of 3x3 faces)
   const netWrap = document.createElement("div");
+  netWrap.className = "board-frame cube-net";
   netWrap.style.cssText = `
     display: grid;
     grid-template-columns: repeat(4, auto);
     grid-template-rows: repeat(3, auto);
     gap: 6px;
     padding: 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
   `;
 
   for (const [f, gCol, gRow] of NET_LAYOUT) {
     const faceBox = document.createElement("div");
     const isHot = highlights?.face === f;
+    faceBox.className = "cube-face" + (isHot ? " hot" : "");
     faceBox.style.cssText = `
       grid-column: ${gCol + 1};
       grid-row: ${gRow + 1};
@@ -435,10 +416,6 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
       grid-template-rows: repeat(3, 28px);
       gap: 2px;
       padding: 3px;
-      border-radius: 6px;
-      background: #141619;
-      border: 2px solid ${isHot ? "var(--accent-warm, #FFE600)" : "transparent"};
-      box-shadow: ${isHot ? "0 0 10px var(--accent-warm, #FFE600)" : "none"};
     `;
 
     for (let r = 0; r < 3; r++) {
@@ -447,11 +424,11 @@ export function render(stage, solver, renderState, highlights, editable, onEdit,
         const info = COLOR_MAP[code] || { hex: "#444", text: "#fff" };
         const sticker = document.createElement("button");
         sticker.type = "button";
+        sticker.className = "cube-sticker";
         sticker.style.cssText = `
           width: 28px;
           height: 28px;
           border: none;
-          border-radius: 4px;
           background: ${info.hex};
           color: ${info.text};
           font-size: 11px;

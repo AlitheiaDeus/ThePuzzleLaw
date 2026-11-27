@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional
 
 META: Dict[str, Any] = {
     "slug": "packing_grids",
-    "name": "Packing Grids (Nonogram)",
+    "name": "Nonogram",
     "category": "State",
     "renderer": "grid",
     "description": "Solves Nonogram / Picross grids via line-pattern intersection and backtracking.",

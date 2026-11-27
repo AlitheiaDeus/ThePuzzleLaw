@@ -1,101 +1,63 @@
-# The Puzzle Law (v2)
+# The Puzzle Law
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg)](https://docs.astral.sh/uv/)
-[![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> **Modular, local-first Puzzle & Cipher Solver Hub**  
-> Python solver generators (`solvers/*.py`) served over a local FastAPI backend (`127.0.0.1:8000`) to a zero-build Vanilla HTML/CSS/JS workspace with Chalkboard & Midnight Plum themes.
+**A local-first puzzle & cipher workbench that runs in your browser.**  
+Pick a puzzle, sketch or tweak a board straight on the page (or load a preset), hit **Solve**, and scrub through every deduction, branch, and move step-by-step.
 
-*(The legacy PySide6 desktop app is preserved in Git under the `legacy/pyside6` branch and `v1-pyside6` tag.)*
+No cloud calls, no accounts, no frontend build step. Just Python + a browser tab.
 
 ---
 
-## Quickstart
+## Try It
 
 ```bash
 uv sync
 uv run python -m app.main
 ```
 
-This starts the local server on `http://127.0.0.1:8000` and opens it in your default browser.
-
-- Run headless tests:
-  ```bash
-  uv run pytest
-  ```
-- Start server without auto-opening a browser tab:
-  ```bash
-  uv run python -m app.main --no-browser --port 8000
-  ```
+Opens `http://127.0.0.1:8000` in your browser.  
+Pass `--no-browser` or `--port 8080` if you want to keep it headless or move the port.
 
 ---
 
-## Architecture
+## Themes
 
-```text
-ThePuzzleLaw/
-├── pyproject.toml           # uv project & dependency manifest
-├── app/
-│   ├── main.py              # FastAPI server, static mount, SSE solve streaming
-│   ├── registry.py          # Auto-discovers solvers/*.py and reads META
-│   └── runner.py            # Generator runner with cooperative abort & step caps
-├── solvers/                 # Single-file pure-Python solver modules
-│   ├── block_escape.py      # Multi-tile sliding blocks, ice, portals, lockstep chains
-│   ├── chess_attack.py      # Zoned N-Queens & N-Superking (Rook + King)
-│   ├── cipher_suite.py      # Caesar/ROT, Atbash, Reverse, Vigenere, Base64/Hex/Bin, Freq
-│   ├── flip.py              # Lights Out GF(2) Gaussian elimination
-│   ├── flood.py             # Flood-It component contraction + IDA*
-│   ├── flow.py              # Numberlink & Checkpoint Saturation Flow
-│   ├── liquid_sorter.py     # Variable-capacity A* pouring solver
-│   ├── loop_games.py        # Slitherlink single-loop solver
-│   ├── maze_navigator.py    # 2D obstacle maze A* / BFS
-│   ├── morse_decoder.py     # Spaced & unspaced/smooshed Morse Trie beam search
-│   ├── packing_grids.py     # Nonogram (Picross) line intersection + backtracking
-│   ├── sliding_tile.py      # N-Puzzle (8/15-puzzle) A* Manhattan solver
-│   ├── sudoku.py            # Hybrid Naked/Hidden Singles + MRV backtracking
-│   ├── unruly.py            # Binary grid parity & no-3-in-a-row CSP
-│   ├── urjo.py              # Binary grid with Moore clues & adjacent line disparity
-│   └── data/morse/          # Multilingual wordlists for smooshed Morse decoding
-├── web/
-│   ├── index.html           # Permanent Hub Shell (Sidebar, Stage, Transport, Logs)
-│   ├── styles.css           # Chalkboard & Midnight Plum themes
-│   ├── app.js               # SSE client, Edit/Playback state, timeline scrubber
-│   └── renderers/
-│       ├── grid.js          # Generic interactive 2D grid/board renderer
-│       ├── text.js          # Cipher & signal workbench + frequency bar chart
-│       └── custom/          # Specialized SVG/HTML views (liquid_tubes.js, loop_board.js)
-└── tests/
-    ├── test_registry.py     # Solver autodiscovery & META schema validation
-    ├── test_solvers.py      # Default preset solve & cooperative abort tests
-    └── test_api.py          # FastAPI endpoints & SSE stream smoke tests
-```
+Cycle themes anytime from the top bar (**Theme** button) or via URL (`?theme=forge`). Each theme changes the surface material, stroke style, and board geometry—not just the colors.
+
+| Chalk | ChromaForge |
+| :---: | :---: |
+| ![Chalk — Slitherlink](docs/screenshots/chalk-slitherlink.png) | ![Forge — Block Escape](docs/screenshots/forge-block-escape.png) |
+| **Electric Slate** | **Midnight Plum** |
+| ![Slate — Rubik's Cube](docs/screenshots/slate-rubiks.png) | ![Plum — Liquid Sorter](docs/screenshots/plum-liquid.png) |
+
+| Ramapillar |
+| :---: |
+| ![Ramapillar — Poly-Slitherlink](docs/screenshots/ramapillar-poly.png) |
 
 ---
 
-## Adding a New Solver
+## What's Inside
 
-Drop a single `.py` file into `solvers/` exporting `META` and `solve(state, params, should_abort)`:
+- **Path Puzzles**: Block Escape (merged pieces, ice, portals, lockstep chains), Flood, Liquid Sorter, Maze Navigator (square & hex, edge walls, weighted terrain), Numberlink, Peg Solitaire, Rubik's Cube, Sliding Tile.
+- **Logic & Grid Puzzles**: Chess Attack (Queens & Rook+King), Lights Out, Nonogram, Palisade, Polyomino Tiling, Slitherlink, Poly-Slitherlink (Square, Hex, Triangular, 3-4-6-4), Sudoku, Unruly, Urjo.
+- **Ciphers & Signals**: Cipher Suite (Caesar/ROT, Atbash, Vigenère, Base64/Hex/Binary, frequency bars) and Morse Decoder (spaced, phonetic, binary, and unspaced/smooshed streams).
+- **Live Playback**: Pause, step forward/back, scrub the color-coded timeline (deductions, explorations, backtracks, solution), or inspect/edit any board as raw JSON.
 
-```python
-META = {
-    "slug": "my_puzzle",
-    "name": "My Puzzle",
-    "category": "2D Grid",
-    "renderer": "grid",  # "grid" | "text" | "custom"
-    "description": "Short description.",
-    "grid_meta": {"mode": "number", "editable": True},
-    "presets": {"Default": {"board": [[0, 0], [0, 0]]}},
-    "params": [],
-}
+---
 
-def solve(state, params, should_abort):
-    yield {"type": "start", "state": state, "highlights": {}, "desc": "Loaded", "stats": {}}
-    if should_abort():
-        return
-    # ... compute steps ...
-    yield {"type": "solution", "state": solved_state, "highlights": {}, "desc": "Solved!", "stats": {}}
-```
+## Customization
 
-`app/registry.py` discovers it automatically on startup—no config file registration required.
+### Tweak or Add a Theme
+All five themes live in [web/styles.css](web/styles.css) under `:root[data-theme="<id>"]`, with optional SVG stroke/shading filters in [web/index.html](web/index.html).
+
+1. Copy an existing `:root[data-theme="..."]` block in [web/styles.css](web/styles.css) and tune its palette, `--frame-bg`, `--stage-tex`, `--tile-shade`, and radii.
+2. Add `{ id: "your_id", label: "Theme: Your Name" }` to `THEMES` in [web/app.js](web/app.js).
+3. Refresh the browser—your theme selection persists in `localStorage` and updates the tab favicon automatically.
+
+### Add Your Own Puzzle
+Every puzzle is a single self-contained file in `solvers/`—no config registration needed. Drop a `.py` file with `META` and a generator `solve(state, params, should_abort)` that yields step dicts (`"start"` → `"deduce"` / `"explore"` / `"backtrack"` → `"solution"` or `"failed"`), and it shows up in the sidebar on startup.
+
+*(Developer guidelines and test rules live in [AGENTS.md](AGENTS.md). Legacy PySide6 desktop code is archived on branch `legacy/pyside6` / tag `v1-pyside6`.)*

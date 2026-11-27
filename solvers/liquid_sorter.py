@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 
 META: Dict[str, Any] = {
     "slug": "liquid_sorter",
-    "name": "Liquid Sorter Pro",
+    "name": "Liquid Sorter",
     "category": "Path",
     "renderer": "custom",
     "custom_view": "/renderers/custom/liquid_tubes.js",

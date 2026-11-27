@@ -21,7 +21,7 @@ _NATIVE_BIN = Path(__file__).resolve().parent / "native" / (
 
 META: Dict[str, Any] = {
     "slug": "block_escape",
-    "name": "Block Escape (Portals & Chains)",
+    "name": "Block Escape",
     "category": "Path",
     "renderer": "custom",
     "custom_view": "/renderers/custom/block_escape.js",

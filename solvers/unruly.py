@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 META: Dict[str, Any] = {
     "slug": "unruly",
-    "name": "Unruly (Binary Puzzle)",
+    "name": "Unruly",
     "category": "State",
     "renderer": "grid",
     "description": "Solves even-sized binary grids: no 3-in-a-row, equal row/col counts, and optional unique lines.",

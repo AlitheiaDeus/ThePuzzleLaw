@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 
 META: Dict[str, Any] = {
     "slug": "cipher_suite",
-    "name": "Cipher & Frequency Suite",
+    "name": "Cipher Suite",
     "category": "Cipher",
     "renderer": "text",
     "description": "Caesar/ROT brute-force, Atbash, Reverse, Vigenère, Base64/Hex/Binary, and character frequency analysis.",

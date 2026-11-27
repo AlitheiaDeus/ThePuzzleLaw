@@ -222,13 +222,20 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     pad + (vy - minY) * scale,
   ];
 
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "puzzle-svg-board");
   svg.setAttribute("width", String(width));
   svg.setAttribute("height", String(height));
-  svg.style.background = "var(--bg-panel)";
-  svg.style.border = "1px solid var(--border)";
-  svg.style.borderRadius = "10px";
   svg.style.userSelect = "none";
+
+  const strokeLayer = document.createElementNS(ns, "g");
+  strokeLayer.setAttribute("class", "theme-stroke-layer");
+  const textLayer = document.createElementNS(ns, "g");
+  textLayer.setAttribute("class", "theme-text-layer");
+  const hitLayer = document.createElementNS(ns, "g");
+  hitLayer.setAttribute("class", "theme-hit-layer");
+  svg.append(strokeLayer, textLayer, hitLayer);
 
   const hlSet = new Set(
     Array.isArray(highlights?.edge_indices)
@@ -244,7 +251,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
     const cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
 
-    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    const poly = document.createElementNS(ns, "polygon");
     poly.setAttribute("points", pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" "));
     poly.setAttribute("fill", "transparent");
     if (editable) {
@@ -268,10 +275,10 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         cycleClue(-1);
       });
     }
-    svg.appendChild(poly);
+    hitLayer.appendChild(poly);
 
     if (f.clue !== null && f.clue !== undefined) {
-      const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const txt = document.createElementNS(ns, "text");
       txt.setAttribute("x", cx.toFixed(1));
       txt.setAttribute("y", (cy + 5).toFixed(1));
       txt.setAttribute("text-anchor", "middle");
@@ -281,7 +288,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       txt.setAttribute("font-family", "var(--font-mono)");
       txt.style.pointerEvents = "none";
       txt.textContent = String(f.clue);
-      svg.appendChild(txt);
+      textLayer.appendChild(txt);
     }
   });
 
@@ -292,7 +299,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     const val = edgeValues[ei] || 0;
     const isHl = hlSet.has(ei);
 
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    const line = document.createElementNS(ns, "line");
     line.setAttribute("x1", x1.toFixed(1));
     line.setAttribute("y1", y1.toFixed(1));
     line.setAttribute("x2", x2.toFixed(1));
@@ -311,10 +318,10 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       line.setAttribute("stroke-width", isHl ? "3" : "1.8");
       line.setAttribute("opacity", "0.75");
     }
-    svg.appendChild(line);
+    strokeLayer.appendChild(line);
 
     if (editable) {
-      const hit = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const hit = document.createElementNS(ns, "line");
       hit.setAttribute("x1", x1.toFixed(1));
       hit.setAttribute("y1", y1.toFixed(1));
       hit.setAttribute("x2", x2.toFixed(1));
@@ -333,20 +340,20 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         next.edge_values[ei] = val === -1 ? 0 : -1;
         onEdit(next);
       });
-      svg.appendChild(hit);
+      hitLayer.appendChild(hit);
     }
   });
 
   // 3. Vertex dots
   for (const pt of vertices) {
     const [cx, cy] = toPx(pt);
-    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    const dot = document.createElementNS(ns, "circle");
     dot.setAttribute("cx", cx.toFixed(1));
     dot.setAttribute("cy", cy.toFixed(1));
     dot.setAttribute("r", "2.6");
     dot.setAttribute("fill", "var(--text-muted)");
     dot.style.pointerEvents = "none";
-    svg.appendChild(dot);
+    strokeLayer.appendChild(dot);
   }
 
   stage.appendChild(svg);

@@ -36,7 +36,7 @@ KNOWN_DASHES = {"-", "_", "—", "–", "―", "−", "1", "=", "~"}
 
 META: Dict[str, Any] = {
     "slug": "morse_decoder",
-    "name": "Morse & Smooshed Signal Decoder",
+    "name": "Morse Decoder",
     "category": "Cipher",
     "renderer": "text",
     "description": "Decodes spaced Morse, phonetic dit/dah, binary 0/1, and unspaced/smooshed Morse streams via Trie beam search.",

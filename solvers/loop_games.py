@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 META: Dict[str, Any] = {
     "slug": "loop_games",
-    "name": "Loop Family (Slitherlink)",
+    "name": "Slitherlink",
     "category": "State",
     "renderer": "custom",
     "custom_view": "/renderers/custom/loop_board.js",

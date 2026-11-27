@@ -202,7 +202,7 @@ PRESETS = _build_validated_presets()
 
 META: Dict[str, Any] = {
     "slug": "poly_slitherlink",
-    "name": "Poly-Slitherlink (Sq / Hex / Tri / 3-4-6-4)",
+    "name": "Poly-Slitherlink",
     "category": "State",
     "renderer": "custom",
     "custom_view": "/renderers/custom/poly_loop_board.js",

@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
 
 META: Dict[str, Any] = {
     "slug": "chess_attack",
-    "name": "Chess Attack (Queens & Rook+King)",
+    "name": "Chess Attack",
     "category": "State",
     "renderer": "grid",
     "description": "Places 1 (or 2) non-attacking Queen or Rook+King (Star Battle) pieces per row, column, and color zone.",
@@ -137,11 +137,6 @@ def _attacked_cells(r: int, c: int, n: int, piece_type: str, stars: int) -> Set[
     return cells
 
 
-def _conflict_footprint(r: int, c: int, n: int, piece_type: str, stars: int) -> Set[Tuple[int, int]]:
-    """Cells strictly excluded from hosting another star due to piece adjacency/line rules."""
-    return _attacked_cells(r, c, n, piece_type, stars)
-
-
 def solve(
     state: Dict[str, Any],
     params: Dict[str, Any],
@@ -236,7 +231,7 @@ def solve(
 
     def place_star(r: int, c: int, b: List[List[int]], elim: Set[Tuple[int, int]]) -> None:
         b[r][c] = 1
-        elim.update(_conflict_footprint(r, c, n, piece_type, stars))
+        elim.update(_attacked_cells(r, c, n, piece_type, stars))
         row_cnt, col_cnt, zone_cnt = count_unit_stars(b)
         if row_cnt[r] >= stars:
             for cc in range(n):

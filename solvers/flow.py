@@ -19,7 +19,7 @@ FLOW_COLORS = {
 
 META: Dict[str, Any] = {
     "slug": "flow",
-    "name": "Flow Free / Numberlink",
+    "name": "Numberlink",
     "category": "Path",
     "renderer": "grid",
     "description": "Solves Numberlink (multi-pair color routing) and Checkpoint Saturation Flow.",

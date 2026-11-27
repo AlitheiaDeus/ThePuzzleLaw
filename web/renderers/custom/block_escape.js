@@ -546,20 +546,14 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       stage.appendChild(tdBar);
     }
 
-    const tip = document.createElement("div");
-    tip.style.fontSize = "11px";
-    tip.style.color = "var(--text-muted)";
-    tip.style.marginBottom = "6px";
-    if (activeBrush === "__ice__") {
-      tip.textContent = "Ice Toggle mode: Click any block to toggle Ice (') on the entire piece.";
-    } else if (activeBrush === "__chain_same__" || activeBrush === "__chain_invert__") {
-      tip.textContent = chainSourceToken
-        ? `Selected source: ${chainSourceToken.toUpperCase()} — Now click target piece to toggle chain.`
-        : "Chain mode: Click source piece, then click target piece to toggle a chain link.";
-    } else {
-      tip.textContent = "Drag to paint merged blocks • Zones (★ / A / B) can be drawn under tiles • Shift+drag extends previous piece • Right-click erases";
+    if ((activeBrush === "__chain_same__" || activeBrush === "__chain_invert__") && chainSourceToken) {
+      const tip = document.createElement("div");
+      tip.style.fontSize = "11px";
+      tip.style.color = "var(--text-muted)";
+      tip.style.marginBottom = "6px";
+      tip.textContent = `Chain source: ${chainSourceToken.toUpperCase()} — click target piece`;
+      stage.appendChild(tip);
     }
-    stage.appendChild(tip);
 
     if (showTextDrawer) {
       const drawer = document.createElement("div");
@@ -628,14 +622,11 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
   const cellSize = Math.max(30, Math.min(56, Math.floor(560 / maxDim)));
 
   const gridEl = document.createElement("div");
+  gridEl.className = "board-frame be-board";
   gridEl.style.display = "grid";
   gridEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
   gridEl.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
   gridEl.style.gap = "0px";
-  gridEl.style.background = "var(--bg-main)";
-  gridEl.style.border = "2px solid var(--border)";
-  gridEl.style.borderRadius = "6px";
-  gridEl.style.padding = "4px";
   gridEl.style.userSelect = "none";
   gridEl.style.touchAction = "none";
   gridEl.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -678,6 +669,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       const pid = pieces ? pieces[r][c] : -1;
 
       const cell = document.createElement("div");
+      cell.className = "be-cell";
       cell.style.width = `${cellSize}px`;
       cell.style.height = `${cellSize}px`;
       cell.style.boxSizing = "border-box";
@@ -686,14 +678,12 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       cell.style.alignItems = "center";
       cell.style.justifyContent = "center";
       cell.style.cursor = canEdit ? "crosshair" : "default";
-      cell.style.border = "1px solid rgba(255, 255, 255, 0.06)";
 
       // Base terrain / zone layer (drawn UNDER tiles)
       if (tTok === "x" || val === "#") {
-        cell.style.background = "#3d434c";
-        cell.style.border = "1px solid #22262c";
-        cell.style.borderRadius = "3px";
+        cell.classList.add("be-wall");
       } else if (tTok === "T" || val === "★") {
+        cell.classList.add("be-goal");
         cell.style.background = "rgba(34, 197, 94, 0.22)";
         cell.style.border = "1.5px dashed #22c55e";
         const zLbl = document.createElement("span");
@@ -747,6 +737,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
 
         const insetPx = 5;
         const tile = document.createElement("div");
+        tile.className = "be-tile";
         tile.style.position = "absolute";
         tile.style.top = sameTop ? "0px" : `${insetPx}px`;
         tile.style.bottom = sameBottom ? "0px" : `${insetPx}px`;
@@ -762,15 +753,16 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         tile.style.color = "#0b1116";
         tile.style.pointerEvents = "none";
 
-        tile.style.borderTop = sameTop ? "none" : "2px solid rgba(0, 0, 0, 0.72)";
-        tile.style.borderBottom = sameBottom ? "none" : "2px solid rgba(0, 0, 0, 0.72)";
-        tile.style.borderLeft = sameLeft ? "none" : "2px solid rgba(0, 0, 0, 0.72)";
-        tile.style.borderRight = sameRight ? "none" : "2px solid rgba(0, 0, 0, 0.72)";
+        tile.style.borderTop = sameTop ? "none" : "2px solid var(--be-tile-edge, rgba(0, 0, 0, 0.72))";
+        tile.style.borderBottom = sameBottom ? "none" : "2px solid var(--be-tile-edge, rgba(0, 0, 0, 0.72))";
+        tile.style.borderLeft = sameLeft ? "none" : "2px solid var(--be-tile-edge, rgba(0, 0, 0, 0.72))";
+        tile.style.borderRight = sameRight ? "none" : "2px solid var(--be-tile-edge, rgba(0, 0, 0, 0.72))";
 
-        const rTL = !sameTop && !sameLeft ? "5px" : "0px";
-        const rTR = !sameTop && !sameRight ? "5px" : "0px";
-        const rBR = !sameBottom && !sameRight ? "5px" : "0px";
-        const rBL = !sameBottom && !sameLeft ? "5px" : "0px";
+        const rCorner = "var(--radius-sm, 5px)";
+        const rTL = !sameTop && !sameLeft ? rCorner : "0px";
+        const rTR = !sameTop && !sameRight ? rCorner : "0px";
+        const rBR = !sameBottom && !sameRight ? rCorner : "0px";
+        const rBL = !sameBottom && !sameLeft ? rCorner : "0px";
         tile.style.borderRadius = `${rTL} ${rTR} ${rBR} ${rBL}`;
 
         if (chainSourceToken && cleanTok === chainSourceToken) {

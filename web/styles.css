@@ -1,5 +1,38 @@
-/* The Puzzle Law v2 — Utilitarian Chalkboard & Midnight Plum Themes */
+/* The Puzzle Law v2 — Material Themes: Chalk, Midnight Plum, Electric Slate, ChromaForge, Ramapillar */
 
+:root {
+  --font-ui: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", "Source Code Pro", monospace;
+
+  /* Default geometry & surface tokens (overridden per theme) */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-pill: 4px;
+  --panel-bg: var(--bg-panel);
+  --surface-bg: var(--bg-surface);
+  --frame-bg: var(--bg-panel);
+  --frame-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --cell-shadow: none;
+  --btn-shadow: none;
+  --stage-tex: none;
+  --stage-tex-size: auto;
+  --tile-shade: none;
+  --grid-line: rgba(255, 255, 255, 0.16);
+  --grid-line-faint: rgba(255, 255, 255, 0.06);
+  --be-wall-bg: #3d434c;
+  --be-tile-edge: rgba(0, 0, 0, 0.72);
+  --cube-chassis: var(--bg-main);
+  --cube-chassis-border: var(--border);
+
+  /* Crafted vector SVG overlays (zero raw TV-static noise) */
+  --svg-slate-veins: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120'%3E%3Cpath d='M-6,84 L32,64 L58,72 L104,36 L138,40 L166,18' fill='none' stroke='%23DADFDD' stroke-opacity='0.14' stroke-width='1.1' stroke-linecap='round'/%3E%3Cpath d='M58,72 L76,98 L114,108' fill='none' stroke='%23DADFDD' stroke-opacity='0.09' stroke-width='0.85'/%3E%3Cpath d='M104,36 L90,10 L66,-4' fill='none' stroke='%23C3CAF7' stroke-opacity='0.09' stroke-width='0.8'/%3E%3Cpath d='M12,24 L42,16 L62,28' fill='none' stroke='%2365443D' stroke-opacity='0.24' stroke-width='1'/%3E%3C/svg%3E");
+  --svg-rama-charms: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cpath d='M36,24 L38.5,31.5 L46,34 L38.5,36.5 L36,44 L33.5,36.5 L26,34 L33.5,31.5 Z' fill='%23DEBBF5' fill-opacity='0.14'/%3E%3Cpath d='M138,118 L140,124 L146,126 L140,128 L138,134 L136,128 L130,126 L136,124 Z' fill='%23CBDCF4' fill-opacity='0.14'/%3E%3Cpath d='M86,146 L87.5,150.5 L92,152 L87.5,153.5 L86,158 L84.5,153.5 L80,152 L84.5,150.5 Z' fill='%23F6BECC' fill-opacity='0.13'/%3E%3Ccircle cx='122' cy='42' r='2.2' fill='%23F6BECC' fill-opacity='0.14'/%3E%3Ccircle cx='44' cy='112' r='1.8' fill='%23CBDCF4' fill-opacity='0.14'/%3E%3Cpath d='M146,34 Q153,28 158,36 Q151,42 146,34 Z' fill='%23DF5088' fill-opacity='0.12'/%3E%3Cpath d='M22,148 Q29,142 34,150 Q27,156 22,148 Z' fill='%23F6BECC' fill-opacity='0.12'/%3E%3C/svg%3E");
+  --svg-rama-crest: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 28'%3E%3Cpath d='M8,15 C3,12 2,5 8,4 C13,3 15,8 12,11 C10,13 7,11 8,9' fill='%23F6BECC' stroke='%236E4A7E' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28,15 C33,12 34,5 28,4 C23,3 21,8 24,11 C26,13 29,11 28,9' fill='%23F6BECC' stroke='%236E4A7E' stroke-width='2' stroke-linecap='round'/%3E%3Cellipse cx='18' cy='16' rx='10' ry='8.5' fill='%23FDE4E1' stroke='%236E4A7E' stroke-width='2'/%3E%3Cpath d='M12,15 Q13.5,13 15,15 M21,15 Q22.5,13 24,15' fill='none' stroke='%23180C1E' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M15.5,18 Q17,19.8 18,18 Q19,19.8 20.5,18' fill='none' stroke='%23180C1E' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.7' fill='%23DF5088' fill-opacity='0.55'/%3E%3Ccircle cx='24' cy='17.5' r='1.7' fill='%23DF5088' fill-opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* ============================================================================
+   1. CHALK — Matte Slate Blackboard, Chalk-Smudge Wipes & Dry Chalk Strokes
+   ============================================================================ */
 :root,
 :root[data-theme="chalk"] {
   --bg-main: #0F1412;
@@ -13,11 +46,37 @@
   --accent-secondary: #B5FF4D;
   --accent-hot: #FF4D80;
   --accent-warm: #FFB800;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 3px;
+  --panel-bg: #16211D;
+  --surface-bg: #1E2D27;
+  --frame-bg: #141D1A;
+  --frame-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --cell-shadow: inset 0 0 8px 2px rgba(15, 20, 18, 0.52);
+  --btn-shadow: none;
+  /* Soft erased chalk-cloud smudges across the slate board */
+  --stage-tex:
+    radial-gradient(ellipse 46% 36% at 24% 30%, rgba(234, 230, 223, 0.055) 0%, transparent 72%),
+    radial-gradient(ellipse 38% 32% at 74% 68%, rgba(234, 230, 223, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 28% 24% at 54% 44%, rgba(150, 168, 160, 0.035) 0%, transparent 65%);
+  --stage-tex-size: 100% 100%;
+  /* Feathered chalk-rubbed edge so colored tiles blend like rubbed chalk pastel */
+  --tile-shade: radial-gradient(ellipse at 45% 42%, rgba(255, 255, 255, 0.08) 0%, transparent 58%, rgba(15, 20, 18, 0.48) 100%);
+  --grid-line: rgba(234, 230, 223, 0.34);
+  --grid-line-faint: rgba(234, 230, 223, 0.12);
+  --be-wall-bg: #27342F;
+  --be-tile-edge: rgba(234, 230, 223, 0.72);
+  --cube-chassis: #131B18;
+  --cube-chassis-border: #556B62;
 }
 
-/* Midnight Plum:
-   #B3472C, #01CA6B, #69E6D0, #621D19, #210C2D,
-   #B9A7E3, #B7016B, #E76C8F, #8A5890, #7973A3 */
+/* ============================================================================
+   2. MIDNIGHT PLUM — Ripe Plum Fruit Skin, Waxy Bloom & Juicy Rim Depth
+   Palette: #B3472C, #01CA6B, #69E6D0, #621D19, #210C2D,
+            #B9A7E3, #B7016B, #E76C8F, #8A5890, #7973A3
+   ============================================================================ */
 :root[data-theme="plum"] {
   --bg-main: #210C2D;
   --bg-panel: #210C2D;
@@ -30,11 +89,44 @@
   --accent-secondary: #69E6D0;
   --accent-hot: #B7016B;
   --accent-warm: #B3472C;
+
+  --radius-sm: 10px;
+  --radius-md: 20px;
+  --radius-pill: 14px;
+  /* Curved plum skin shading across panels & frames using palette tones */
+  --panel-bg: linear-gradient(180deg, rgba(138, 88, 144, 0.14) 0%, rgba(33, 12, 45, 0.96) 100%), #210C2D;
+  --surface-bg: linear-gradient(180deg, rgba(231, 108, 143, 0.16) 0%, rgba(98, 29, 25, 0.95) 100%), #621D19;
+  --frame-bg: radial-gradient(circle at 28% 18%, rgba(185, 167, 227, 0.14) 0%, rgba(33, 12, 45, 0.95) 68%), #210C2D;
+  --frame-shadow:
+    0 14px 32px rgba(10, 2, 16, 0.65),
+    inset 0 2px 8px rgba(185, 167, 227, 0.18),
+    inset 0 -8px 16px rgba(12, 3, 20, 0.72);
+  --cell-shadow:
+    inset 0 2px 5px rgba(185, 167, 227, 0.16),
+    inset 0 -4px 8px rgba(12, 3, 20, 0.65);
+  --btn-shadow:
+    inset 0 1px 2px rgba(231, 108, 143, 0.25),
+    0 3px 6px rgba(10, 2, 16, 0.45);
+  /* Soft powdery plum-skin bloom dome */
+  --stage-tex:
+    radial-gradient(ellipse 64% 52% at 32% 24%, rgba(185, 167, 227, 0.12) 0%, rgba(138, 88, 144, 0.05) 45%, transparent 75%),
+    radial-gradient(ellipse 55% 48% at 78% 82%, rgba(98, 29, 25, 0.28) 0%, transparent 68%);
+  --stage-tex-size: 100% 100%;
+  /* Curved fruit-skin specular highlight */
+  --tile-shade: radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.22) 0%, transparent 52%, rgba(33, 12, 45, 0.28) 100%);
+  --grid-line: rgba(185, 167, 227, 0.26);
+  --grid-line-faint: rgba(185, 167, 227, 0.09);
+  --be-wall-bg: #621D19;
+  --be-tile-edge: rgba(33, 12, 45, 0.78);
+  --cube-chassis: #210C2D;
+  --cube-chassis-border: #8A5890;
 }
 
-/* Electric Slate:
-   #2BB6BF, #98DF0F, #426588, #C3CAF7, #B914BD,
-   #DADFDD, #C09970, #993758, #65443D, #5748EA */
+/* ============================================================================
+   3. ELECTRIC SLATE — Cleaved Stone Slates, Fracture Veins & Shingle Ledges
+   Palette: #2BB6BF, #98DF0F, #426588, #C3CAF7, #B914BD,
+            #DADFDD, #C09970, #993758, #65443D, #5748EA
+   ============================================================================ */
 :root[data-theme="slate"] {
   --bg-main: #426588;
   --bg-panel: #65443D;
@@ -47,9 +139,41 @@
   --accent-secondary: #2BB6BF;
   --accent-hot: #B914BD;
   --accent-warm: #993758;
+
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-pill: 2px;
+  --panel-bg: linear-gradient(180deg, rgba(192, 153, 112, 0.14) 0%, rgba(16, 10, 8, 0.22) 100%), #65443D;
+  --surface-bg: linear-gradient(180deg, rgba(218, 223, 221, 0.1) 0%, rgba(24, 38, 54, 0.25) 100%), #426588;
+  --frame-bg: var(--svg-slate-veins), linear-gradient(170deg, rgba(218, 223, 221, 0.08) 0%, rgba(20, 32, 46, 0.28) 100%), #426588;
+  --frame-shadow:
+    5px 6px 0 rgba(20, 30, 42, 0.62),
+    inset 1px 1px 0 rgba(218, 223, 221, 0.28),
+    inset -2px -2px 0 rgba(20, 30, 42, 0.45);
+  --cell-shadow:
+    2px 3px 0 rgba(20, 30, 42, 0.48),
+    inset 1px 1px 0 rgba(218, 223, 221, 0.24),
+    inset -1px -1px 0 rgba(20, 30, 42, 0.38);
+  --btn-shadow:
+    2px 2px 0 rgba(20, 30, 42, 0.55),
+    inset 1px 1px 0 rgba(218, 223, 221, 0.22);
+  --stage-tex:
+    var(--svg-slate-veins),
+    linear-gradient(165deg, rgba(218, 223, 221, 0.06) 0%, transparent 45%, rgba(20, 30, 42, 0.22) 100%);
+  --stage-tex-size: 160px 120px, 100% 100%;
+  --tile-shade: var(--svg-slate-veins);
+  --grid-line: rgba(218, 223, 221, 0.34);
+  --grid-line-faint: rgba(218, 223, 221, 0.14);
+  --be-wall-bg: #65443D;
+  --be-tile-edge: rgba(20, 30, 42, 0.85);
+  --cube-chassis: #34506C;
+  --cube-chassis-border: #C09970;
 }
 
-/* ChromaForge (Basalt / Cavern / Slab / Magma / Whitehot) */
+/* ============================================================================
+   4. CHROMAFORGE — Dressed Basalt, Recessed Caverns & Incandescent Magma
+   Palette: Basalt / Cavern / Slab / Bronze / Ash / Cinder / Magma / Whitehot
+   ============================================================================ */
 :root[data-theme="forge"] {
   --bg-main: #0B090A;
   --bg-panel: #120E0D;
@@ -62,9 +186,34 @@
   --accent-secondary: #FEF08A;
   --accent-hot: #EA580C;
   --accent-warm: #FEF08A;
+
+  --radius-sm: 0px;
+  --radius-md: 1px;
+  --radius-pill: 0px;
+  /* Dressed basalt panels & recessed cavern frame from ChromaForge */
+  --panel-bg: linear-gradient(180deg, #1c1513 0%, #130e0d 100%);
+  --surface-bg: linear-gradient(180deg, #241b18 0%, #17110f 100%);
+  --frame-bg: linear-gradient(180deg, #110d0c 0%, #0d0a09 100%);
+  --frame-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.85), 0 1px 0 rgba(255, 190, 120, 0.06);
+  --cell-shadow: 0 3px 8px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 230, 200, 0.07);
+  --btn-shadow: 0 2px 0 #050404;
+  /* Subterranean hearth floor glow */
+  --stage-tex: radial-gradient(ellipse 85% 42% at 50% 104%, rgba(234, 88, 12, 0.14) 0%, rgba(154, 52, 18, 0.04) 48%, transparent 78%);
+  --stage-tex-size: 100% 100%;
+  /* Subtle mineral bevel highlight on colored tiles */
+  --tile-shade: linear-gradient(180deg, rgba(255, 240, 180, 0.14) 0%, transparent 45%, rgba(0, 0, 0, 0.25) 100%);
+  --grid-line: rgba(166, 149, 136, 0.24);
+  --grid-line-faint: rgba(166, 149, 136, 0.09);
+  --be-wall-bg: #261b15;
+  --be-tile-edge: #050404;
+  --cube-chassis: #120E0D;
+  --cube-chassis-border: #3a281e;
 }
 
-/* Ramapillar (Plum Ink / Cream / Sakura / Pastel Sky / Lilac) */
+/* ============================================================================
+   5. RAMAPILLAR — Mascot Theme: Bold Ink Outlines, Ribbon Capsules & Starlight
+   Palette: Plum Ink / Cream / Sakura / Pastel Sky / Lilac
+   ============================================================================ */
 :root[data-theme="ramapillar"] {
   --bg-main: #180C1E;
   --bg-panel: #22112B;
@@ -77,6 +226,29 @@
   --accent-secondary: #CBDCF4;
   --accent-hot: #F6BECC;
   --accent-warm: #DEBBF5;
+
+  --radius-sm: 11px;
+  --radius-md: 20px;
+  --radius-pill: 999px;
+  --panel-bg: linear-gradient(180deg, rgba(222, 187, 245, 0.06) 0%, transparent 100%), #22112B;
+  --surface-bg: linear-gradient(180deg, rgba(253, 228, 225, 0.07) 0%, transparent 100%), #2E183A;
+  --frame-bg: #22112B;
+  --frame-shadow: 0 5px 0 #100516, 0 12px 26px rgba(10, 4, 14, 0.55);
+  --cell-shadow: inset 0 2px 0 rgba(253, 228, 225, 0.14), inset 0 -3px 0 rgba(16, 7, 22, 0.5);
+  --btn-shadow: 0 3px 0 #100516, inset 0 1px 0 rgba(253, 228, 225, 0.16);
+  --stage-tex:
+    var(--svg-rama-charms),
+    radial-gradient(ellipse 60% 45% at 20% 25%, rgba(222, 187, 245, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 45% at 82% 75%, rgba(203, 220, 244, 0.07) 0%, transparent 65%);
+  --stage-tex-size: 180px 180px, 100% 100%, 100% 100%;
+  /* Soft illustrated plush highlight arc */
+  --tile-shade: radial-gradient(ellipse at 32% 20%, rgba(253, 228, 225, 0.24) 0%, transparent 55%);
+  --grid-line: rgba(203, 220, 244, 0.26);
+  --grid-line-faint: rgba(203, 220, 244, 0.09);
+  --be-wall-bg: #2E183A;
+  --be-tile-edge: #180C1E;
+  --cube-chassis: #22112B;
+  --cube-chassis-border: #6E4A7E;
 }
 
 * {
@@ -88,7 +260,7 @@
 body {
   background: var(--bg-main);
   color: var(--text-main);
-  font-family: "Consolas", "Cascadia Code", "Source Code Pro", monospace;
+  font-family: var(--font-ui);
   font-size: 13px;
   height: 100vh;
   overflow: hidden;
@@ -96,28 +268,60 @@ body {
 
 .hub-shell {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 248px 1fr;
   height: 100vh;
 }
 
 /* Sidebar */
 .sidebar {
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .brand {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .brand-title {
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Ramapillar mascot emblem */
+:root[data-theme="ramapillar"] .brand-title::before {
+  content: "";
+  width: 28px;
+  height: 22px;
+  background-image: var(--svg-rama-crest);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* ChromaForge dressed basalt brand tag */
+:root[data-theme="forge"] .brand-title::before {
+  content: "CF";
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+  color: #140b07;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  border-top: 1px solid #fef08a;
+  border-bottom: 1px solid #9a3412;
 }
 
 .sidebar-search {
@@ -127,8 +331,8 @@ body {
 
 .sidebar-search input {
   width: 100%;
-  padding: 6px 8px;
-  border-radius: 3px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--bg-main);
   color: var(--text-main);
@@ -150,9 +354,9 @@ body {
 .category-label {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.9px;
   color: var(--text-muted);
-  margin: 10px 4px 4px;
+  margin: 10px 6px 4px;
   font-weight: 700;
 }
 
@@ -163,8 +367,8 @@ body {
   border: 1px solid transparent;
   border-left: 3px solid transparent;
   color: var(--text-main);
-  padding: 6px 8px;
-  border-radius: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
@@ -175,19 +379,14 @@ body {
 }
 
 .solver-item:hover {
-  background: var(--bg-surface);
+  background: var(--surface-bg);
 }
 
 .solver-item.active {
-  background: var(--bg-surface);
+  background: var(--surface-bg);
   color: var(--accent-primary);
   border-left: 3px solid var(--accent-primary);
   font-weight: 700;
-}
-
-.solver-tag {
-  font-size: 10px;
-  color: var(--text-muted);
 }
 
 /* Workspace */
@@ -201,7 +400,7 @@ body {
 }
 
 .top-bar {
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border-bottom: 1px solid var(--border);
   padding: 8px 16px;
   display: flex;
@@ -242,11 +441,11 @@ body {
 select,
 input[type="text"],
 textarea {
-  background: var(--bg-surface);
+  background: var(--surface-bg);
   color: var(--text-main);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
   font-family: inherit;
   font-size: 12px;
   outline: none;
@@ -259,20 +458,26 @@ textarea:focus {
 }
 
 .btn {
-  padding: 5px 10px;
-  border-radius: 3px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  background: var(--bg-surface);
+  background: var(--surface-bg);
   color: var(--text-main);
-  font-family: inherit;
+  font-family: var(--font-ui);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  box-shadow: var(--btn-shadow);
   cursor: pointer;
+  position: relative;
 }
 
 .btn:hover:not(:disabled) {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn:disabled {
@@ -297,19 +502,23 @@ textarea:focus {
   min-width: 0;
   position: relative;
   display: block;
-  padding: 16px;
+  padding: 20px;
   overflow: auto;
+  background-color: var(--bg-main);
+  background-image: var(--stage-tex);
+  background-size: var(--stage-tex-size);
 }
 
 .mode-tag {
   position: absolute;
   top: 10px;
   right: 14px;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
-  padding: 2px 7px;
-  border-radius: 2px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--bg-panel);
   color: var(--accent-primary);
@@ -333,7 +542,7 @@ textarea:focus {
   padding-bottom: 16px;
 }
 
-/* Generic Grid Renderer */
+/* Generic Grid & Shared Board Framing */
 .grid-toolbar {
   display: flex;
   align-items: center;
@@ -346,22 +555,25 @@ textarea:focus {
 .palette-swatch {
   width: 22px;
   height: 22px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 2px solid transparent;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 
 .palette-swatch.selected {
-  border-color: #fff;
+  border-color: var(--text-main);
 }
 
 .board-frame {
   display: inline-grid;
-  gap: 2px;
-  padding: 8px;
-  border-radius: 4px;
-  background: var(--bg-panel);
+  gap: 3px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--frame-bg);
   border: 1px solid var(--border);
+  box-shadow: var(--frame-shadow);
   position: relative;
 }
 
@@ -375,10 +587,11 @@ textarea:focus {
 .clue-col-strip,
 .clue-row-strip {
   display: grid;
-  gap: 2px;
+  gap: 3px;
 }
 
 .clue-chip {
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
   display: flex;
@@ -389,17 +602,34 @@ textarea:focus {
 .grid-cell {
   width: 48px;
   height: 48px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--bg-cell);
   border: 1px solid var(--border);
+  box-shadow: var(--cell-shadow);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
   user-select: none;
   position: relative;
+}
+
+/* Shading overlay (feathered chalk pastel / curved plum gloss / slate cleavage / basalt bevel / plush sheen) */
+.grid-cell::before,
+.be-tile::before,
+.cube-sticker::before,
+.tube-slot:not(.empty)::before,
+.palette-swatch::before,
+.freq-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--tile-shade);
+  pointer-events: none;
 }
 
 .grid-cell:hover {
@@ -434,9 +664,244 @@ textarea:focus {
   top: 2px;
   left: 4px;
   font-size: 10px;
-  color: #fff;
+  color: var(--text-main);
   opacity: 0.9;
   font-weight: 700;
+}
+
+/* SVG Boards (Slitherlink, Palisade, Poly-Slitherlink, Hex Maze) */
+.puzzle-svg-board {
+  background: var(--frame-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--frame-shadow);
+}
+
+/* ============================================================================
+   Theme-Specific Structural & Stroke Overrides
+   ============================================================================ */
+
+/* --- CHALK: Hand-drawn chalk strokes & matte wooden chalkboard ledge --- */
+:root[data-theme="chalk"] .board-frame,
+:root[data-theme="chalk"] .text-pane,
+:root[data-theme="chalk"] .candidates-box,
+:root[data-theme="chalk"] .freq-box,
+:root[data-theme="chalk"] .tube-body {
+  border-color: transparent;
+}
+
+:root[data-theme="chalk"] .board-frame::after,
+:root[data-theme="chalk"] .text-pane::after,
+:root[data-theme="chalk"] .candidates-box::after,
+:root[data-theme="chalk"] .freq-box::after,
+:root[data-theme="chalk"] .tube-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--border);
+  border-radius: inherit;
+  pointer-events: none;
+  filter: url(#chalk-line);
+}
+
+:root[data-theme="chalk"] .tube-body::after {
+  border-top: none;
+}
+
+:root[data-theme="chalk"] .tube-wrap.src .tube-body::after {
+  border-color: var(--accent-hot);
+}
+
+:root[data-theme="chalk"] .tube-wrap.dst .tube-body::after {
+  border-color: var(--accent-primary);
+}
+
+:root[data-theme="chalk"] .grid-cell {
+  border: 1px dashed rgba(234, 230, 223, 0.24);
+  box-shadow: inset 0 0 8px 2px rgba(15, 20, 18, 0.56);
+}
+
+:root[data-theme="chalk"] .grid-cell.box-right {
+  border-right: 2.5px solid var(--accent-primary);
+}
+
+:root[data-theme="chalk"] .grid-cell.box-bottom {
+  border-bottom: 2.5px solid var(--accent-primary);
+}
+
+:root[data-theme="chalk"] .puzzle-svg-board .theme-stroke-layer {
+  filter: url(#chalk-line);
+}
+
+:root[data-theme="chalk"] .puzzle-svg-board .theme-fill-layer {
+  filter: url(#chalk-shade);
+}
+
+/* --- SLATE: Chiseled stone tablet chamfers & cleaved vector edges --- */
+:root[data-theme="slate"] .board-frame,
+:root[data-theme="slate"] .text-pane,
+:root[data-theme="slate"] .candidates-box,
+:root[data-theme="slate"] .freq-box,
+:root[data-theme="slate"] .btn {
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+:root[data-theme="slate"] .grid-cell,
+:root[data-theme="slate"] .be-wall {
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+}
+
+:root[data-theme="slate"] .puzzle-svg-board .theme-stroke-layer {
+  filter: url(#slate-line);
+}
+
+/* --- FORGE (ChromaForge): Dressed basalt header, cavern wells, incandescent magma CTA --- */
+:root[data-theme="forge"] .top-bar {
+  border-top: 1px solid rgba(255, 190, 110, 0.16);
+  border-bottom: 2px solid #050404;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.06), 0 6px 20px rgba(0, 0, 0, 0.75);
+}
+
+:root[data-theme="forge"] .sidebar {
+  border-right: 1px solid #281d18;
+  box-shadow: inset -1px 0 0 rgba(255, 190, 120, 0.04);
+}
+
+:root[data-theme="forge"] .sidebar-search input,
+:root[data-theme="forge"] .scrub-track {
+  background: #0d0a09;
+  border: 1px solid #2a1e19;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
+}
+
+:root[data-theme="forge"] .btn {
+  border: 1px solid #3a281e;
+  border-top-color: rgba(255, 195, 120, 0.2);
+  border-bottom: 2px solid #070505;
+  font-family: var(--font-mono);
+}
+
+:root[data-theme="forge"] .btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2f231e 0%, #1f1714 100%);
+  color: #ffffff;
+  border-color: #6e4730;
+}
+
+:root[data-theme="forge"] .btn-solve {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef08a 24%, #fb923c 62%, #ea580c 100%);
+  color: #140b07;
+  border: 1px solid #fffbeb;
+  border-bottom: 2px solid #9a3412;
+  font-weight: 800;
+  box-shadow: 0 2px 0 #2a0f05, 0 0 14px rgba(251, 146, 60, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme="forge"] .btn-solve:hover:not(:disabled) {
+  color: #140b07;
+  filter: brightness(1.07);
+}
+
+:root[data-theme="forge"] .solver-item.active {
+  background: linear-gradient(180deg, #331c12 0%, #1f100a 100%);
+  color: var(--whitehot, #FEF08A);
+  border-left: 3px solid var(--accent-primary);
+  box-shadow: inset 0 -1px 0 var(--accent-primary), inset 0 0 10px rgba(234, 88, 12, 0.25);
+}
+
+:root[data-theme="forge"] .board-frame,
+:root[data-theme="forge"] .text-pane,
+:root[data-theme="forge"] .candidates-box,
+:root[data-theme="forge"] .freq-box,
+:root[data-theme="forge"] .puzzle-svg-board {
+  border-color: #281d18;
+  border-top-color: #1a120f;
+}
+
+:root[data-theme="forge"] .grid-cell {
+  border-color: #332620;
+  border-top-color: rgba(255, 210, 170, 0.14);
+  border-bottom: 2px solid #050404;
+}
+
+:root[data-theme="forge"] .grid-cell.hl-primary,
+:root[data-theme="forge"] .grid-cell.hl-hot {
+  box-shadow: 0 0 10px rgba(234, 88, 12, 0.45), var(--cell-shadow);
+}
+
+/* --- PLUM: Smooth curved fruit contours --- */
+:root[data-theme="plum"] .btn,
+:root[data-theme="plum"] .solver-item {
+  border-width: 1.5px;
+}
+
+/* --- RAMAPILLAR: Thick chibi plum-ink outlines & ribbon active pills --- */
+:root[data-theme="ramapillar"] .board-frame,
+:root[data-theme="ramapillar"] .text-pane,
+:root[data-theme="ramapillar"] .candidates-box,
+:root[data-theme="ramapillar"] .freq-box,
+:root[data-theme="ramapillar"] .puzzle-svg-board,
+:root[data-theme="ramapillar"] .btn {
+  border-width: 2px;
+}
+
+:root[data-theme="ramapillar"] .solver-item.active {
+  background: linear-gradient(90deg, rgba(223, 80, 136, 0.24) 0%, rgba(222, 187, 245, 0.16) 55%, rgba(203, 220, 244, 0.18) 100%);
+  border: 2px solid var(--accent-primary);
+  color: var(--text-main);
+}
+
+:root[data-theme="ramapillar"] .btn-solve {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-warm) 100%);
+  color: #180C1E;
+  border-color: var(--text-main);
+  font-weight: 700;
+}
+
+/* Block Escape */
+.be-board {
+  padding: 6px;
+}
+
+.be-cell {
+  border: 1px solid var(--grid-line-faint);
+  background: var(--bg-cell);
+}
+
+.be-wall {
+  background: var(--be-wall-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--cell-shadow);
+}
+
+.be-tile {
+  overflow: hidden;
+  box-shadow: var(--cell-shadow);
+}
+
+/* Rubik's Cube */
+.cube-stage,
+.cube-net {
+  padding: 10px;
+}
+
+.cube-face {
+  background: var(--cube-chassis);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--cube-chassis-border);
+  box-shadow: var(--cell-shadow);
+}
+
+.cube-face.hot {
+  border-color: var(--accent-warm);
+  box-shadow: 0 0 12px var(--accent-warm);
+}
+
+.cube-sticker {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--cell-shadow);
 }
 
 /* Text / Cipher Renderer */
@@ -454,13 +919,15 @@ textarea:focus {
 }
 
 .text-pane {
-  background: var(--bg-panel);
+  background: var(--frame-bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--frame-shadow);
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
 }
 
 .text-pane label {
@@ -475,17 +942,20 @@ textarea:focus {
   width: 100%;
   min-height: 150px;
   resize: vertical;
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.45;
+  border-radius: var(--radius-sm);
 }
 
 .candidates-box,
 .freq-box {
-  background: var(--bg-panel);
+  background: var(--frame-bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--frame-shadow);
   padding: 10px;
+  position: relative;
 }
 
 .cand-item {
@@ -493,13 +963,14 @@ textarea:focus {
   justify-content: space-between;
   gap: 12px;
   padding: 5px 8px;
+  font-family: var(--font-mono);
   font-size: 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .cand-item:first-child {
   border-left: 3px solid var(--accent-primary);
-  background: var(--bg-surface);
+  background: var(--surface-bg);
 }
 
 .freq-bars {
@@ -522,10 +993,13 @@ textarea:focus {
 .freq-bar {
   width: 16px;
   background: var(--accent-secondary);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .freq-label {
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-muted);
 }
@@ -547,7 +1021,7 @@ textarea:focus {
   height: 44px;
   margin-bottom: 18px;
   border: 1px dashed transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   opacity: 0.35;
@@ -593,9 +1067,9 @@ textarea:focus {
   width: 20px;
   height: 20px;
   padding: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  background: var(--bg-surface);
+  background: var(--surface-bg);
   color: var(--text-main);
   font-family: inherit;
   font-size: 12px;
@@ -626,12 +1100,18 @@ textarea:focus {
   padding: 5px;
   border: 2px solid var(--border);
   border-top: none;
-  border-radius: 2px 2px 12px 12px;
-  background: var(--bg-panel);
+  border-radius: var(--radius-sm) var(--radius-sm) 16px 16px;
+  background: var(--frame-bg);
+  box-shadow: var(--frame-shadow);
   display: flex;
   flex-direction: column-reverse;
   justify-content: flex-start;
   gap: 3px;
+  position: relative;
+}
+
+:root[data-theme="ramapillar"] .tube-body {
+  border-radius: 14px 14px 22px 22px;
 }
 
 .tube-wrap.src .tube-body {
@@ -644,18 +1124,22 @@ textarea:focus {
 
 .tube-slot {
   height: 28px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   user-select: none;
   position: relative;
+  overflow: hidden;
+  box-shadow: var(--cell-shadow);
 }
 
 .tube-slot.empty {
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--grid-line-faint);
+  background: transparent;
+  box-shadow: none;
   color: transparent;
 }
 
@@ -679,7 +1163,7 @@ textarea:focus {
 
 .tube-seg {
   height: 28px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -689,9 +1173,9 @@ textarea:focus {
 
 .notation-panel {
   width: min(100%, 760px);
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
@@ -706,7 +1190,7 @@ textarea:focus {
 
 .notation-input {
   flex: 1;
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
@@ -718,9 +1202,9 @@ textarea:focus {
 .validation-banner {
   font-size: 12px;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   max-width: min(100%, 760px);
   text-align: center;
 }
@@ -737,7 +1221,7 @@ textarea:focus {
 
 /* Transport Bar */
 .transport-bar {
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border-top: 1px solid var(--border);
   padding: 8px 16px;
   display: flex;
@@ -755,13 +1239,14 @@ textarea:focus {
   min-width: 30px;
   height: 28px;
   padding: 0 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  background: var(--bg-surface);
+  background: var(--surface-bg);
   color: var(--text-main);
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
+  box-shadow: var(--btn-shadow);
   cursor: pointer;
 }
 
@@ -796,7 +1281,7 @@ textarea:focus {
   left: 0;
   right: 0;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   pointer-events: none;
@@ -828,7 +1313,7 @@ textarea:focus {
   width: 12px;
   height: 16px;
   margin-top: -5px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   background: var(--text-main);
   border: 1px solid var(--bg-main);
 }
@@ -841,12 +1326,13 @@ textarea:focus {
 .scrub-track-wrap input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 16px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   background: var(--text-main);
   border: 1px solid var(--bg-main);
 }
 
 .step-counter {
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-muted);
   min-width: 68px;
@@ -898,12 +1384,14 @@ textarea:focus {
   display: flex;
   gap: 8px;
   color: var(--accent-secondary);
+  font-family: var(--font-mono);
   font-size: 11px;
 }
 
 .log-entries {
   overflow-y: auto;
   max-height: 120px;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
   display: flex;
@@ -938,9 +1426,10 @@ textarea:focus {
 
 .modal-card {
   width: min(92vw, 560px);
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--frame-shadow);
   padding: 16px;
   display: flex;
   flex-direction: column;

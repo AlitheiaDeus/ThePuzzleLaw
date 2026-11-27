@@ -115,13 +115,20 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
   const height = rows * cell + pad * 2;
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "puzzle-svg-board");
   svg.setAttribute("width", String(width));
   svg.setAttribute("height", String(height));
-  svg.style.background = "var(--bg-panel)";
-  svg.style.borderRadius = "12px";
-  svg.style.border = "1px solid var(--border)";
 
   const ns = "http://www.w3.org/2000/svg";
+  const fillLayer = document.createElementNS(ns, "g");
+  fillLayer.setAttribute("class", "theme-fill-layer");
+  const strokeLayer = document.createElementNS(ns, "g");
+  strokeLayer.setAttribute("class", "theme-stroke-layer");
+  const textLayer = document.createElementNS(ns, "g");
+  textLayer.setAttribute("class", "theme-text-layer");
+  const hitLayer = document.createElementNS(ns, "g");
+  hitLayer.setAttribute("class", "theme-hit-layer");
+  svg.append(fillLayer, strokeLayer, textLayer, hitLayer);
 
   // Cell zone tint (Palisade regions) + clickable clues (0-3)
   for (let r = 0; r < rows; r++) {
@@ -133,7 +140,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         rect.setAttribute("width", String(cell));
         rect.setAttribute("height", String(cell));
         rect.setAttribute("fill", PALISADE_ZONE_COLORS[zones[r][c] % PALISADE_ZONE_COLORS.length]);
-        svg.appendChild(rect);
+        fillLayer.appendChild(rect);
       }
 
       const val = clues[r]?.[c];
@@ -154,7 +161,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           onEdit(next);
         });
       }
-      svg.appendChild(txt);
+      textLayer.appendChild(txt);
     }
   }
 
@@ -176,13 +183,13 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         st === 1
           ? (isHl ? "var(--accent-secondary)" : "var(--accent-primary)")
           : st === -1
-            ? (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.06)")
-            : (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.16)"),
+            ? (isHl ? "var(--accent-hot)" : "var(--grid-line-faint, rgba(255,255,255,0.08))")
+            : (isHl ? "var(--accent-hot)" : "var(--grid-line, rgba(255,255,255,0.22))"),
       );
       line.setAttribute("stroke-width", st === 1 ? "5" : isHl ? "3" : "2");
       if (st === -1) line.setAttribute("stroke-dasharray", "3 5");
       line.setAttribute("stroke-linecap", "round");
-      svg.appendChild(line);
+      strokeLayer.appendChild(line);
 
       if (editable) {
         const hit = document.createElementNS(ns, "line");
@@ -199,7 +206,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           next.h_edges[r][c] = cur === 0 ? 1 : cur === 1 ? -1 : 0;
           onEdit(next);
         });
-        svg.appendChild(hit);
+        hitLayer.appendChild(hit);
       }
     }
   }
@@ -219,13 +226,13 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         st === 1
           ? (isHl ? "var(--accent-secondary)" : "var(--accent-primary)")
           : st === -1
-            ? (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.06)")
-            : (isHl ? "var(--accent-hot)" : "rgba(255,255,255,0.16)"),
+            ? (isHl ? "var(--accent-hot)" : "var(--grid-line-faint, rgba(255,255,255,0.08))")
+            : (isHl ? "var(--accent-hot)" : "var(--grid-line, rgba(255,255,255,0.22))"),
       );
       line.setAttribute("stroke-width", st === 1 ? "5" : isHl ? "3" : "2");
       if (st === -1) line.setAttribute("stroke-dasharray", "3 5");
       line.setAttribute("stroke-linecap", "round");
-      svg.appendChild(line);
+      strokeLayer.appendChild(line);
 
       if (editable) {
         const hit = document.createElementNS(ns, "line");
@@ -242,7 +249,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           next.v_edges[r][c] = cur === 0 ? 1 : cur === 1 ? -1 : 0;
           onEdit(next);
         });
-        svg.appendChild(hit);
+        hitLayer.appendChild(hit);
       }
     }
   }
@@ -255,7 +262,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       dot.setAttribute("cy", String(pad + r * cell));
       dot.setAttribute("r", "4");
       dot.setAttribute("fill", "var(--text-muted)");
-      svg.appendChild(dot);
+      strokeLayer.appendChild(dot);
     }
   }
 

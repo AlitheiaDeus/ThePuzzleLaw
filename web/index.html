@@ -100,5 +100,35 @@
   </div>
 
   <script type="module" src="/app.js"></script>
+
+  <!-- Procedural material filters (must stay rendered with 0x0 size for SVG filter references) -->
+  <svg id="theme-svg-filters" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;">
+    <defs>
+      <!-- Chalk stroke: hand-drawn organic wobble + powdery dust halo around dry core -->
+      <filter id="chalk-line" x="-12%" y="-12%" width="124%" height="124%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.16" numOctaves="2" seed="11" result="wobble" />
+        <feDisplacementMap in="SourceGraphic" in2="wobble" scale="1.5" xChannelSelector="R" yChannelSelector="G" result="core" />
+        <feGaussianBlur in="core" stdDeviation="1.1" result="halo" />
+        <feColorMatrix in="halo" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.42 0" result="dustHalo" />
+        <feMerge>
+          <feMergeNode in="dustHalo" />
+          <feMergeNode in="core" />
+        </feMerge>
+      </filter>
+
+      <!-- Chalk shading: soft feathered pastel-rubbed edge -->
+      <filter id="chalk-shade" x="-6%" y="-6%" width="112%" height="112%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.55" result="soft" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="19" result="edgeNoise" />
+        <feDisplacementMap in="soft" in2="edgeNoise" scale="1.2" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+
+      <!-- Slate line: crisp cleaved stone micro-edge -->
+      <filter id="slate-line" x="-6%" y="-6%" width="112%" height="112%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="5" result="stoneNoise" />
+        <feDisplacementMap in="SourceGraphic" in2="stoneNoise" scale="0.9" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </defs>
+  </svg>
 </body>
 </html>

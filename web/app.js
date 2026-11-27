@@ -175,7 +175,7 @@ function updateTransport() {
     els.modePill.className = "mode-tag edit";
     els.modePill.style.cursor = "default";
     els.modePill.title = "";
-    els.stepDescLive.textContent = "Ready. Edit the puzzle or click Solve.";
+    els.stepDescLive.textContent = "Ready.";
     els.stepStatsLive.innerHTML = "";
   }
 }
@@ -253,7 +253,7 @@ function renderSidebar(filterText = "") {
     for (const s of items) {
       const btn = document.createElement("button");
       btn.className = "solver-item" + (state.activeSolver?.slug === s.slug ? " active" : "");
-      btn.innerHTML = `<span>${s.name}</span><span class="solver-tag">${s.renderer}</span>`;
+      btn.textContent = s.name;
       btn.addEventListener("click", () => selectSolver(s.slug));
       els.solverList.appendChild(btn);
     }

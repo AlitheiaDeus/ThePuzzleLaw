@@ -485,21 +485,17 @@ export function renderGrid(stage, solver, renderState, highlights, editable, onE
       onEdit(next);
     });
 
-    const hint = document.createElement("span");
-    hint.style.fontSize = "12px";
-    hint.style.color = "var(--text-muted)";
-    hint.style.marginLeft = "6px";
-    hint.textContent =
-      permInputMode === "swap"
-        ? "Click two tiles or drag to swap."
-        : maxPerm < 10
-          ? `Type 1-${maxPerm} (0/Space = blank)`
-          : `Type 1-${maxPerm} + Enter/Space (Space = blank)${permBuffer ? ` | typing: ${permBuffer}_` : ""}`;
-
     pBar.appendChild(btnSwap);
     pBar.appendChild(btnType);
     pBar.appendChild(btnResetOrder);
-    pBar.appendChild(hint);
+    if (permInputMode === "type" && permBuffer) {
+      const hint = document.createElement("span");
+      hint.style.fontSize = "12px";
+      hint.style.color = "var(--text-muted)";
+      hint.style.marginLeft = "6px";
+      hint.textContent = `typing: ${permBuffer}_`;
+      pBar.appendChild(hint);
+    }
     stage.appendChild(pBar);
   }
 
@@ -1047,13 +1043,19 @@ export function renderGrid(stage, solver, renderState, highlights, editable, onE
       pathEl.style.pointerEvents = "none";
       svg.appendChild(pathEl);
     } else if (hasPath) {
+      const pathStroke =
+        highlights.color === "hot"
+          ? "var(--accent-hot)"
+          : highlights.color === "secondary"
+            ? "var(--accent-secondary)"
+            : "var(--accent-primary)";
       const pts = highlights.path
         .map(([pr, pc]) => `${gx(pc + 0.5)},${gy(pr + 0.5)}`)
         .join(" ");
       const poly = document.createElementNS(ns, "polyline");
       poly.setAttribute("points", pts);
       poly.setAttribute("fill", "none");
-      poly.setAttribute("stroke", "var(--accent-primary)");
+      poly.setAttribute("stroke", pathStroke);
       poly.setAttribute("stroke-width", "5");
       poly.setAttribute("stroke-linecap", "round");
       poly.setAttribute("stroke-linejoin", "round");

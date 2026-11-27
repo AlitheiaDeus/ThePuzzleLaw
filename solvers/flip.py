@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 META: Dict[str, Any] = {
     "slug": "flip",
-    "name": "Flip (Lights Out)",
+    "name": "Lights Out",
     "category": "State",
     "renderer": "grid",
     "description": "Exact Gaussian elimination over GF(2) for Lights Out toggle matrices.",

@@ -146,7 +146,7 @@ def _scrambled_faces(moves_str: str) -> Dict[str, List[List[str]]]:
 
 META: Dict[str, Any] = {
     "slug": "rubiks_cube",
-    "name": "Rubik's Cube (3x3)",
+    "name": "Rubik's Cube",
     "category": "Path",
     "renderer": "custom",
     "custom_view": "/renderers/custom/rubiks_cube.js",

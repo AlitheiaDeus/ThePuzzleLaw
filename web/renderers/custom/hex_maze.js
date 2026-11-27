@@ -201,8 +201,19 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("class", "puzzle-svg-board hex-maze-svg");
   svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
-  svg.style.cssText = `width:min(100%, ${svgW}px); height:auto; max-height:460px;`;
+  svg.style.cssText = `width:min(100%, ${svgW}px); height:auto; max-height:460px; padding:6px;`;
+
+  const fillLayer = document.createElementNS(svgNS, "g");
+  fillLayer.setAttribute("class", "theme-fill-layer");
+  const strokeLayer = document.createElementNS(svgNS, "g");
+  strokeLayer.setAttribute("class", "theme-stroke-layer");
+  const textLayer = document.createElementNS(svgNS, "g");
+  textLayer.setAttribute("class", "theme-text-layer");
+  const hitLayer = document.createElementNS(svgNS, "g");
+  hitLayer.setAttribute("class", "theme-hit-layer");
+  svg.append(fillLayer, strokeLayer, textLayer, hitLayer);
 
   const vertsGrid = Array.from({ length: rows }, (_, r) =>
     Array.from({ length: cols }, (_, c) => {
@@ -216,15 +227,27 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       const val = board[r][c];
       const [cx, cy] = centerOf(r, c);
       const isHi = hiSet.has(`${r},${c}`);
+      const ptsStr = hexPointsStr(vertsGrid[r][c]);
 
-      const poly = document.createElementNS(svgNS, "polygon");
-      poly.setAttribute("points", hexPointsStr(vertsGrid[r][c]));
-      poly.setAttribute("fill", colors[String(val)] || "#232629");
-      poly.setAttribute("stroke", isHi ? hiColor : "var(--border)");
-      poly.setAttribute("stroke-width", isHi ? "3" : "1.5");
+      const polyFill = document.createElementNS(svgNS, "polygon");
+      polyFill.setAttribute("points", ptsStr);
+      polyFill.setAttribute("fill", val === 0 ? "var(--bg-cell)" : (colors[String(val)] || "var(--bg-cell)"));
+      polyFill.setAttribute("stroke", "none");
+      fillLayer.appendChild(polyFill);
+
+      const polyOutline = document.createElementNS(svgNS, "polygon");
+      polyOutline.setAttribute("points", ptsStr);
+      polyOutline.setAttribute("fill", "none");
+      polyOutline.setAttribute("stroke", isHi ? hiColor : "var(--border)");
+      polyOutline.setAttribute("stroke-width", isHi ? "3" : "1.5");
+      strokeLayer.appendChild(polyOutline);
+
       if (editable && hexEditMode === "tiles") {
-        poly.style.cursor = "pointer";
-        poly.addEventListener("click", () => {
+        const polyHit = document.createElementNS(svgNS, "polygon");
+        polyHit.setAttribute("points", ptsStr);
+        polyHit.setAttribute("fill", "transparent");
+        polyHit.style.cursor = "pointer";
+        polyHit.addEventListener("click", () => {
           const nextBoard = board.map((row) => row.slice());
           if (activeHexBrush === 2 || activeHexBrush === 3) {
             for (let rr = 0; rr < rows; rr++) {
@@ -236,8 +259,8 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           nextBoard[r][c] = nextBoard[r][c] === activeHexBrush ? 0 : activeHexBrush;
           onEdit({ ...renderState, board: nextBoard });
         });
+        hitLayer.appendChild(polyHit);
       }
-      svg.appendChild(poly);
 
       const lbl = labels[String(val)] ?? "";
       if (lbl) {
@@ -247,10 +270,10 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("font-size", String(Math.max(10, Math.round(radius * 0.48))));
         text.setAttribute("font-weight", "700");
-        text.setAttribute("fill", val === 2 || val === 3 ? "#111" : "#EAE6DF");
+        text.setAttribute("fill", val === 2 || val === 3 ? "#111" : "var(--text-main)");
         text.style.pointerEvents = "none";
         text.textContent = lbl;
-        svg.appendChild(text);
+        textLayer.appendChild(text);
       }
     }
   }
@@ -283,7 +306,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           wallLine.setAttribute("stroke-width", "5");
           wallLine.setAttribute("stroke-linecap", "round");
           wallLine.style.pointerEvents = "none";
-          svg.appendChild(wallLine);
+          strokeLayer.appendChild(wallLine);
         }
 
         if (showInteractive) {
@@ -292,7 +315,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
           hit.setAttribute("y1", p1[1].toFixed(2));
           hit.setAttribute("x2", p2[0].toFixed(2));
           hit.setAttribute("y2", p2[1].toFixed(2));
-          hit.setAttribute("stroke", isWall ? "transparent" : "rgba(255,255,255,0.12)");
+          hit.setAttribute("stroke", isWall ? "transparent" : "var(--grid-line, rgba(255,255,255,0.14))");
           hit.setAttribute("stroke-width", "9");
           hit.setAttribute("stroke-linecap", "round");
           hit.style.cursor = "pointer";
@@ -305,7 +328,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
             else delete nextState.hex_walls;
             onEdit(nextState);
           });
-          svg.appendChild(hit);
+          hitLayer.appendChild(hit);
         }
       }
     }
@@ -336,7 +359,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
       tEl.setAttribute("stroke-linecap", "round");
       tEl.setAttribute("stroke-linejoin", "round");
       tEl.style.pointerEvents = "none";
-      svg.appendChild(tEl);
+      strokeLayer.appendChild(tEl);
     }
   }
 
@@ -362,7 +385,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     pathEl.setAttribute("stroke-linecap", "round");
     pathEl.setAttribute("stroke-linejoin", "round");
     pathEl.style.pointerEvents = "none";
-    svg.appendChild(pathEl);
+    strokeLayer.appendChild(pathEl);
   } else if (Array.isArray(highlights?.path) && highlights.path.length > 1) {
     const polyline = document.createElementNS(svgNS, "polyline");
     const pts = highlights.path.map(([r, c]) => centerOf(r, c).join(",")).join(" ");
@@ -373,7 +396,7 @@ export function render(stage, solver, renderState, highlights, editable, onEdit)
     polyline.setAttribute("stroke-linecap", "round");
     polyline.setAttribute("stroke-linejoin", "round");
     polyline.style.pointerEvents = "none";
-    svg.appendChild(polyline);
+    strokeLayer.appendChild(polyline);
   }
 
   root.appendChild(svg);
