@@ -617,3 +617,39 @@ def test_beefed_deterministic_deductions():
         assert res["steps"][-1]["type"] == "solution"
 
 
+def test_peg_solitaire_variants_and_diagnostics():
+    entry = SOLVERS["peg_solitaire"]
+
+    # Unsolvable isolated pegs
+    bad_board = [
+        [2, 0, 2],
+        [0, 1, 0],
+        [2, 0, 1],
+    ]
+    res_bad = run_solver_sync(entry, {"board": bad_board}, {"goal_mode": "Any Hole", "movement": "Orthogonal (4-Way)"})
+    assert res_bad["ok"] is True
+    assert res_bad["steps"][-1]["type"] == "failed"
+
+    # Diagonal-only solvable 3x3
+    diag_board = [
+        [2, 1, 1],
+        [1, 2, 1],
+        [1, 1, 1],
+    ]
+    res_ortho = run_solver_sync(entry, {"board": diag_board}, {"goal_mode": "Any Hole", "movement": "Orthogonal (4-Way)"})
+    assert res_ortho["steps"][-1]["type"] == "failed"
+    res_diag = run_solver_sync(entry, {"board": diag_board}, {"goal_mode": "Any Hole", "movement": "Orthogonal + Diagonal (8-Way)"})
+    assert res_diag["steps"][-1]["type"] == "solution"
+    assert res_diag["steps"][-1]["stats"]["pegs_left"] == 1
+
+    # Start Empty Hole(s) constraint on 1x3 board: [2, 2, 1] -> final peg lands at (0, 2), which started empty
+    res_goal = run_solver_sync(entry, {"board": [[2, 2, 1]]}, {"goal_mode": "Start Empty Hole(s)", "movement": "Orthogonal (4-Way)"})
+    assert res_goal["steps"][-1]["type"] == "solution"
+
+    # Cooperative abort stops after start
+    steps = list(entry.solve({"board": [[2, 2, 1]]}, {}, lambda: True))
+    assert len(steps) == 1
+    assert steps[0]["type"] == "start"
+
+
+

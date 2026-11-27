@@ -18,6 +18,7 @@ def test_all_solvers_discovered_and_valid():
         "morse_decoder",
         "packing_grids",
         "palisade",
+        "peg_solitaire",
         "sliding_tile",
         "sudoku",
         "unruly",

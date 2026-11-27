@@ -28,13 +28,15 @@
 
 ```text
 ThePuzzleLaw/
-├── pyproject.toml           # uv dependencies (fastapi, uvicorn, numpy, pytest, httpx)
+├── pyproject.toml           # uv dependencies (fastapi, uvicorn, numpy; dev: pytest, httpx)
+├── kanban.md                # Project task board (keep tasks/bugs out of AGENTS.md)
 ├── app/
 │   ├── main.py              # FastAPI endpoints & static web/ mount
 │   ├── registry.py          # Auto-discovers solvers/*.py and normalizes META
 │   └── runner.py            # Sync & SSE streaming execution with cooperative abort
 ├── solvers/                 # Pure-Python single-file solver modules (zero UI code)
-│   └── data/morse/          # Multilingual frequency dictionaries for morse_decoder.py
+│   ├── data/morse/          # Multilingual frequency dictionaries for morse_decoder.py
+│   └── native/              # Optional compiled native accelerators (e.g. Rust binary)
 ├── web/
 │   ├── index.html           # Permanent App Shell (Sidebar, Stage, Transport Bar, Logs)
 │   ├── styles.css           # Chalkboard (chalk) & Midnight Plum (plum) CSS variables
@@ -42,8 +44,12 @@ ThePuzzleLaw/
 │   └── renderers/
 │       ├── grid.js          # Generic interactive 2D grid/board renderer
 │       ├── text.js          # Generic text/cipher workbench & frequency bar chart
-│       └── custom/          # Optional per-solver JS views (liquid_tubes.js, loop_board.js)
-└── tests/                   # Automated pytest suites
+│       └── custom/          # Per-solver JS views (block_escape, hex_maze, liquid_tubes,
+│                            #   loop_board, poly_loop_board, rubiks_cube)
+└── tests/
+    ├── test_registry.py     # Validates solver discovery, categories, and expected slugs
+    ├── test_solvers.py      # Runs every preset of every solver + edge/abort cases
+    └── test_api.py          # FastAPI endpoint & SSE streaming integration tests
 ```
 
 ---
@@ -53,10 +59,17 @@ ThePuzzleLaw/
 Every solver is a single pure-Python file in `solvers/` with **no web/UI imports**. It must expose:
 
 1. **`META: dict`**:
-   * `slug` (`str`), `name` (`str`), `category` (`str`)
+   * `slug` (`str`), `name` (`str`)
+   * `category` (`str`): must be one of:
+     * `"Path"` — sequential move/path puzzles where move order matters (e.g. Sliding Tile, Block Escape, Peg Solitaire, Rubik's Cube, Maze Navigator)
+     * `"State"` — static constraint-satisfaction / unordered assignment puzzles (e.g. Sudoku, Flip, Slitherlink, Unruly)
+     * `"Cipher"` — text decoding / frequency analysis (e.g. Cipher Suite, Morse Decoder)
    * `renderer`: `"grid"` | `"text"` | `"custom"` (plus optional `custom_view` URL under `/renderers/custom/...`)
    * `description` (`str`)
-   * `grid_meta` (`dict`, optional): hints for `web/renderers/grid.js` (`mode`: `"number" | "binary" | "cycle" | "palette" | "token"`, `min_val`, `max_val`, `labels`, `colors`, `editable`)
+   * `grid_meta` (`dict`, optional): hints for `web/renderers/grid.js`:
+     * `mode`: `"number" | "binary" | "cycle" | "palette" | "token" | "permutation"`
+     * `min_val`, `max_val`, `empty_val`, `labels`, `colors`, `editable`
+     * Optional sizing/layout: `resizable` (`True` or `"square"`), `min_dim`, `max_dim`, `dim_step`, `size_layouts`, `zone_editable`
    * `presets` (`dict[str, dict]`): at least 1 valid, solvable JSON-serializable initial state
    * `params` (`list[dict]`): optional parameter definitions (`select`, `bool`, `text`)
 
@@ -85,7 +98,8 @@ Every solver is a single pure-Python file in `solvers/` with **no web/UI imports
 
 ---
 
-## 5. Portability & Testing Rules
+## 5. Adding a New Solver & Testing Rules
 
-* Never hardcode machine-specific absolute paths or PII in tracked files.
-* Any new solver added to `solvers/` is automatically tested by `tests/test_registry.py` and `tests/test_solvers.py` on its first preset—ensure every default preset is mathematically solvable.
+* **No hardcoded machine-specific absolute paths or PII** in tracked files.
+* **All presets are tested**: `tests/test_solvers.py` (`ALL_PRESET_CASES`) automatically runs **every preset** of **every discovered solver** and asserts it starts with `"start"` and ends with `"solution"`. Ensure every preset in `META["presets"]` is mathematically solvable and fast enough for headless CI.
+* **Registry expectation**: When adding a new solver in `solvers/`, add its `slug` to `expected` in `tests/test_registry.py`, and add targeted edge-case/unsolvable/abort tests in `tests/test_solvers.py`.
