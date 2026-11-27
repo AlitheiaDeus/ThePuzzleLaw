@@ -24,3 +24,7 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# Agent steering documents (local-only)
+AGENTS.md
+GEMINI.md

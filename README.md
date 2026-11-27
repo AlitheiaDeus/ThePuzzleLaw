@@ -60,4 +60,4 @@ All five themes live in [web/styles.css](web/styles.css) under `:root[data-theme
 ### Add Your Own Puzzle
 Every puzzle is a single self-contained file in `solvers/`—no config registration needed. Drop a `.py` file with `META` and a generator `solve(state, params, should_abort)` that yields step dicts (`"start"` → `"deduce"` / `"explore"` / `"backtrack"` → `"solution"` or `"failed"`), and it shows up in the sidebar on startup.
 
-*(Developer guidelines and test rules live in [AGENTS.md](AGENTS.md). Legacy PySide6 desktop code is archived on branch `legacy/pyside6` / tag `v1-pyside6`.)*
+*(Legacy PySide6 desktop code is archived on branch `legacy/pyside6` / tag `v1-pyside6`.)*
